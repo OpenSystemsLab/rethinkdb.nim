@@ -1,2 +1,4 @@
 # rethinkdb.nim
-RethinkDB driver for Nim [Experimental]
+RethinkDB driver for Nim
+
+## This project is for education purpose, just for practice with Nim...
