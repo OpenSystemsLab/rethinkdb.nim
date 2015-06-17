@@ -4,13 +4,13 @@ import endians
 import strutils
 import logging
 import parseutils
-
+import struct
 import ql2
 import utils
 
 const
   BUFFER_SIZE: int = 1024
-
+  HEX = "0123456789abcdef"  
 type
 
   RethinkClientBase = object of RootObj
@@ -32,7 +32,7 @@ var
 when defined(windows):
   import winlean
 
-  # TODO implemen `sendInt` proc
+  #TODO implemen `sendInt` proc
 else:
   import posix
 
@@ -59,28 +59,37 @@ else:
     bigEndian64(addr buf, addr r.queryToken)
     discard r.sock.SocketHandle.send(addr buf, sizeof(buf), MSG_NOSIGNAL)
 
+proc debug(a: string) {.inline.} =
+  let lookup {.global.} = "0123456789abcdef"
+  
+  var ret = ""
+  for c in a:
+    ret &= $(c.ord shr 4)
+    ret &= $(lookup[c.ord and 0x0f])
+  echo ret
 
 proc send*(r: RethinkClient, data: string): Future[void] =
   result = r.sock.send(data)
 
+proc printHex(s: string) =
+  var ret = ""
+  for c in s:
+    ret &= "\\x"
+    ret &= $(c.ord shr 4)
+    ret &= $(HEX[c.ord and 0x0f])
+  echo ret
+  
 proc sendQuery*(r: RethinkClient, query: string): Future[void] =
   L.log(lvlDebug, "Sending query: $#" % [query])
   var future = newFuture[void]("sendQuery")
-  proc cb(sock: TAsyncFD): bool =
+  proc cb(sock: TAsyncFD): bool {.nimcall.} =
     result = true
-
-    #r.sendQueryToken()
-    #discard r.sendInt(query.len)
-    var buf: int64
     r.queryToken.inc()
-    bigEndian64(addr buf, addr r.queryToken)
-    discard r.sock.SocketHandle.send(addr buf, sizeof(buf), MSG_NOSIGNAL)
-    var query = query
-    var queryLen = query.len
-    var buf1: int32
-    littleEndian32(addr buf1, addr queryLen)
-    discard r.sock.SocketHandle.send(addr buf1, sizeof(buf1), MSG_NOSIGNAL)
-    discard r.sock.SocketHandle.send(addr query, query.len, MSG_NOSIGNAL)
+    var data = newStruct(">q<i$#s" % $query.len).add(r.queryToken).add(query.len.int32).add(query).pack()
+    
+    printHex(data)
+   
+    discard r.send(data)
 
     future.complete()
 
@@ -108,7 +117,7 @@ proc handshake*(r: RethinkClient) {.async.} =
   await r.sendInt(HandshakeJSON)
 
   var data = await r.sock.recv(BUFFER_SIZE)
-  if not data.startsWith("SUCCESS"):
+  if data[0..6] != "SUCCESS":
     raise newException(RqlDriverError, data)
   L.log(lvlDebug, "Handshake success...")
 
@@ -119,14 +128,13 @@ proc connect*(r: RethinkClient) {.async.} =
 
 proc processResponse(r: RethinkClient) {.async.} =
   while true:
-    var data = await r.sock.recv(8)
-    var token = data.toInt
-    data = await r.sock.recv(4)
-    var lenLe = data.toInt32
-    var len: int
-    bigEndian32(addr len, addr lenLe)
-    var message = await r.sock.recv(len)
-    echo "[$#, $#, $#]" % [$token, $len, message]
+    var data = await r.sock.recv(12)
+    printHex(data)
+    var header = unpack(">q<i", data)
+    var token = header[0].getQuad
+    var len = header[1].getInt
+    var message = await r.sock.recv(len.int)
+    L.log(lvlDebug, "[$#, $#, $#]" % [$token, $len, message])
 
 
 proc run*(r: RethinkClient) {.async.} =

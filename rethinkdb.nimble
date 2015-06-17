@@ -7,3 +7,4 @@ license       = "MIT"
 
 [Deps]
 Requires: "nim >= 0.11.0"
+Requires: "struct >= 0.0.3"
