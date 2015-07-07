@@ -96,7 +96,7 @@ proc sendQuery*(r: RethinkClient, query: string): Future[void] =
   addWrite(r.sock, cb)
   return future
 
-proc newRethinkClient*(address: string, port = Port(28015), auth = ""): RethinkClient =
+proc newRethinkClient*(address = "127.0.0.1", port = Port(28015), auth = ""): RethinkClient =
 
   assert address != ""
   assert port != Port(0)
