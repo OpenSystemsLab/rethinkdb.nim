@@ -1,5 +1,4 @@
 import asyncdispatch
-import asyncnet
 import rawsockets
 import strutils
 import logging
