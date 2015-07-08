@@ -1,6 +1,6 @@
 const
-  HandshakeV0_4* = 0x400c2d20
-  HandshakeJSON* = 0x7e6970c7
+  HandshakeV0_4*: int32 = 0x400c2d20
+  HandshakeJSON*: int32 = 0x7e6970c7
 
 type
   ResponseType* = enum
