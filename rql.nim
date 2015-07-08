@@ -20,13 +20,7 @@ type
     conn*: RethinkClient
     term*: Term
 
-  RqlDatum = ref RQL
-
-  RqlString* = ref object of RqlDatum
-  RqlBool* = ref object of RqlDatum
-  RqlNum* = ref object of RqlDatum
-  RqlArray* = ref object of RqlDatum
-  RqlObject* = ref object of RqlDatum
+  RqlDatum = ref object of RQL
 
   RqlDatabase* = ref object of RQL
     db*: string
@@ -64,12 +58,12 @@ proc `%`*(term: Term): JsonNode {.procvar.} =
 proc `$`(t: Term): string =
   result = $(%t)
   
-proc newRqlString*(s: string): RqlString =
+proc RString*(s: string): RqlDatum =
   new(result)  
   result.term = newTerm(DATUM)
   result.term.datum = newStringDatum(s)
 
-proc newRqlObject*(obj: openArray[tuple[key: string, val: MutableDatum]]): RqlObject =
+proc RObject*(obj: openArray[tuple[key: string, val: MutableDatum]]): RqlDatum =
   new(result)
   result.term = newTerm(DATUM)
   result.term.datum = newObjectDatum(obj)
@@ -87,18 +81,18 @@ proc db*(r: RethinkClient, db: string): RqlDatabase =
   new(result)
   result.conn = r
   result.term = newTerm(DB)
-  result.term.args.add(newRqlString(db).term)
+  result.term.args.add(RString(db).term)
 
 proc table*(r: RqlDatabase, table: string): RqlTable =
   new(result)
   result.conn = r.conn
   result.term = newTerm(TABLE)
   result.term.args.add(r.term)
-  result.term.args.add(newRqlString(table).term)
+  result.term.args.add(RString(table).term)
 
 proc filter*(r: RqlTable, data: openArray[tuple[key: string, val: MutableDatum]]): RqlQuery =
   new(result)
   result.conn = r.conn
   result.term = newTerm(FILTER)
   result.term.args.add(r.term) 
-  result.term.args.add(newRqlObject(data).term)
+  result.term.args.add(RObject(data).term)
