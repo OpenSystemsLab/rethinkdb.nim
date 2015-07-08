@@ -23,6 +23,10 @@ type
   RqlDatum = ref RQL
 
   RqlString* = ref object of RqlDatum
+  RqlBool* = ref object of RqlDatum
+  RqlNum* = ref object of RqlDatum
+  RqlArray* = ref object of RqlDatum
+  RqlObject* = ref object of RqlDatum
 
   RqlDatabase* = ref object of RQL
     db*: string
@@ -64,7 +68,12 @@ proc newRqlString*(s: string): RqlString =
   new(result)  
   result.term = newTerm(DATUM)
   result.term.datum = newStringDatum(s)
-    
+
+proc newRqlObject*(obj: openArray[tuple[key: string, val: MutableDatum]]): RqlObject =
+  new(result)
+  result.term = newTerm(DATUM)
+  result.term.datum = newObjectDatum(obj)
+  
 proc run*(r: RQL): Future[string] {.async.} =
   await r.conn.connect()
   var j = newJArray()
@@ -87,10 +96,9 @@ proc table*(r: RqlDatabase, table: string): RqlTable =
   result.term.args.add(r.term)
   result.term.args.add(newRqlString(table).term)
 
-proc filter*(r: RqlTable, data: openArray[tuple[k: string, v: MutableDatum]]): RqlQuery =
+proc filter*(r: RqlTable, data: openArray[tuple[key: string, val: MutableDatum]]): RqlQuery =
   new(result)
   result.conn = r.conn
   result.term = newTerm(FILTER)
-  result.term.args.add(r.term)
-  result.term.options = newStringDatum("{name: 'Hello'}")
- 
+  result.term.args.add(r.term) 
+  result.term.args.add(newRqlObject(data).term)
