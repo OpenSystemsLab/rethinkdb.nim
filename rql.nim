@@ -61,12 +61,12 @@ proc `$`(t: Term): string =
 proc RString*(s: string): RqlDatum =
   new(result)  
   result.term = newTerm(DATUM)
-  result.term.datum = newStringDatum(s)
+  result.term.datum = &s
 
 proc RObject*(obj: openArray[tuple[key: string, val: MutableDatum]]): RqlDatum =
   new(result)
   result.term = newTerm(DATUM)
-  result.term.datum = newObjectDatum(obj)
+  result.term.datum = &obj
   
 proc run*(r: RQL): Future[string] {.async.} =
   await r.conn.connect()

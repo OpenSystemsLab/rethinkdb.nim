@@ -18,9 +18,9 @@ type
     else:
       discard
 
-
-
 proc `%`*(m: MutableDatum): JsonNode =
+  if m.isNil:
+    return newJNull()
   case m.kind
   of R_STR:
     result = newJString(m.str)
@@ -40,31 +40,32 @@ proc `%`*(m: MutableDatum): JsonNode =
     for x in m.obj:
       result.fields.add((key: x.key, val: %x.val))
   else:
-    discard
+    result = newJNull()
 
-proc newStringDatum*(s: string): MutableDatum =
+proc `&`*(s: string): MutableDatum =
   new(result)
   result.kind = R_STR
   result.str = s
 
-proc newBoolDatum*(b: bool): MutableDatum =
+proc `&`*(b: bool): MutableDatum =
   new(result)
   result.kind = R_BOOL
   result.bval = b
 
-proc newNumDatum*(n: int): MutableDatum =
+proc `&`*(n: int): MutableDatum =
   new(result)
   result.kind = R_NUM
   result.num = n
 
-proc newArrayDatum*(arr: seq[MutableDatum]): MutableDatum =
+proc `&`*(arr: seq[MutableDatum]): MutableDatum =
   new(result)
   result.kind = R_ARRAY
   result.arr = arr
 
-proc newObjectDatum*(obj: openArray[tuple[key: string, val: MutableDatum]]): MutableDatum =
+proc `&`*(obj: openArray[tuple[key: string, val: MutableDatum]]): MutableDatum =
   new(result)
   result.kind = R_OBJECT
   result.obj = @[]
   for x in obj:
-    result.obj.add(x)
+    result.obj.add(x)  
+      
