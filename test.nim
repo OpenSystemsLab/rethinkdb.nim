@@ -5,7 +5,7 @@ import rethinkdb
 
 proc main() {.async.} =  
   var r = newRethinkClient()
-  await r.db("blog").table("pins").run()
+  await r.db("test").table("posts").run()
     #.filter({"name": newStringDatum("Hello World!")}).run()
 
 when isMainModule:

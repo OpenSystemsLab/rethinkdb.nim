@@ -24,6 +24,11 @@ type
                         ## if you add together two values from a table, but
                         ## they turn out at runtime to be booleans rather
                         ## than numbers.
+  QueryType* = enum
+    START = 1
+    CONTINUE = 2
+    STOP = 3
+    
   DatumType* = enum
     R_NULL = 1
     R_BOOL = 2

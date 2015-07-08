@@ -72,7 +72,7 @@ proc send*(r: RethinkClient, data: string): Future[void] =
   result = r.sock.send(data)
 
 proc printHex(s: string) =
-  var ret = ""
+  var ret = "printHex: "
   for c in s:
     ret &= "\\x"
     ret &= $(c.ord shr 4)
@@ -86,8 +86,7 @@ proc sendQuery*(r: RethinkClient, query: string): Future[void] =
     result = true
     r.queryToken.inc()
     var data = newStruct(">q<i$#s" % $query.len).add(r.queryToken).add(query.len.int32).add(query).pack()
-    
-    printHex(data)   
+    #printHex(data)   
     discard r.send(data)
     future.complete()
   addWrite(r.sock, cb)
@@ -119,7 +118,6 @@ proc handshake*(r: RethinkClient) {.async.} =
 proc processResponse(r: RethinkClient) {.async.} =
   while true:
     var data = await r.sock.recv(12)
-    printHex(data)
     var header = unpack(">q<i", data)
     var token = header[0].getQuad
     var len = header[1].getInt

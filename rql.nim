@@ -44,15 +44,16 @@ proc newTerm*(tt: TermType): Term =
     result.args = @[]
     
 proc `%`*(term: Term): JsonNode {.procvar.} =
-  result = newJArray()
   case term.tt
   of DATUM:
-    result.add(%term.datum)
+    result = %term.datum
   else:
+    result = newJArray()
     result.add(newJInt(term.tt.ord))
-    for x in term.args:
-      result.add(%x)
-
+    var j = newJArray()
+    for x in term.args:      
+      j.add(%x)
+    result.add(j)
     if not term.options.isNil:
       result.add(%term.options)
 
@@ -66,7 +67,11 @@ proc newRqlString*(s: string): RqlString =
     
 proc run*(r: RQL) {.async.} =
   await r.conn.connect()
-  await r.conn.sendQuery($r.term)
+  var j = newJArray()
+  j.add(newJInt(START.ord))
+  j.add(%r.term)
+  j.add(newJObject())
+  await r.conn.sendQuery($j)
   
 proc db*(r: RethinkClient, db: string): RqlDatabase =
   new(result)
