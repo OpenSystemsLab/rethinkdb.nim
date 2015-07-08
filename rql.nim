@@ -1,27 +1,20 @@
-import rethinkdb
-import ql2
+import asyncdispatch
 import strtabs
 import strutils
+import json
 
-type
-  MutableDatum = ref object of RootObj
-    case kind*: DatumType
-    of R_STR:
-      str*: string
-    of R_BOOL:
-      bval*: bool
-    of R_NUM:
-      num*: int
-    else:
-      discard
-      
+import connection
+import ql2
+import datum
+
+type      
   Term = ref object of RootObj
     case tt*: TermType
     of DATUM:
-      mutableDatum*: MutableDatum
+      datum*: MutableDatum
     else:
       args*: seq[Term]
-      options*: StringTableRef
+      options*: MutableDatum
 
   RQL* = ref object of RootObj
     conn*: RethinkClient
@@ -49,45 +42,31 @@ proc newTerm*(tt: TermType): Term =
     discard
   else:
     result.args = @[]
-    result.options = newStringTable()
-
-proc `$`(term: Term): string =
-  result = ""
+    
+proc `%`*(term: Term): JsonNode {.procvar.} =
+  result = newJArray()
   case term.tt
   of DATUM:
-    var val = ""
-    case term.mutableDatum.kind
-    of R_STR:
-      val = "\"" & term.mutableDatum.str & "\""
-    of R_BOOL:
-      val = $term.mutableDatum.bval
-    of R_NUM:
-      val = $term.mutableDatum.num
-    else:
-      val = "{}"
-    result.add("[$#]" % [val])
+    result.add(%term.datum)
   else:
-    var val = ""
+    result.add(newJInt(term.tt.ord))
     for x in term.args:
-      val.add($x)      
-    #TODO options
-    var opts = ""  
-    #opts.add(", {}")
-    result.add("[$#, $#$#]," % [$term.tt, val, opts])
-  #result.add("]")
-      
-proc newMutableDatum(k: DatumType): MutableDatum =
-  new(result)
-  result.kind = k
+      result.add(%x)
 
+    if not term.options.isNil:
+      result.add(%term.options)
+
+proc `$`(t: Term): string =
+  result = $(%t)
+  
 proc newRqlString*(s: string): RqlString =
   new(result)  
   result.term = newTerm(DATUM)
-  result.term.mutableDatum = newMutableDatum(R_STR)
-  result.term.mutableDatum.str = s
+  result.term.datum = newStringDatum(s)
     
-proc run*(r: RQL) =
-  echo r.term
+proc run*(r: RQL) {.async.} =
+  await r.conn.connect()
+  await r.conn.sendQuery($r.term)
   
 proc db*(r: RethinkClient, db: string): RqlDatabase =
   new(result)
@@ -95,14 +74,17 @@ proc db*(r: RethinkClient, db: string): RqlDatabase =
   result.term = newTerm(DB)
   result.term.args.add(newRqlString(db).term)
 
-proc table*(rdb: RqlDatabase, table: string): RqlTable =
+proc table*(r: RqlDatabase, table: string): RqlTable =
   new(result)
-  result.conn = rdb.conn
+  result.conn = r.conn
   result.term = newTerm(TABLE)
-  result.term.args.add(rdb.term)
+  result.term.args.add(r.term)
   result.term.args.add(newRqlString(table).term)
-  
-  
 
-var r = newRethinkClient()
-r.db("blog").table("pins").run() #.filter({name: "Hello World!"}).run()
+proc filter*(r: RqlTable, data: openArray[tuple[k: string, v: MutableDatum]]): RqlQuery =
+  new(result)
+  result.conn = r.conn
+  result.term = newTerm(FILTER)
+  result.term.args.add(r.term)
+  result.term.options = newStringDatum("{name: 'Hello'}")
+ 
