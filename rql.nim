@@ -65,13 +65,14 @@ proc newRqlString*(s: string): RqlString =
   result.term = newTerm(DATUM)
   result.term.datum = newStringDatum(s)
     
-proc run*(r: RQL) {.async.} =
+proc run*(r: RQL): Future[string] {.async.} =
   await r.conn.connect()
   var j = newJArray()
   j.add(newJInt(START.ord))
   j.add(%r.term)
   j.add(newJObject())
   await r.conn.sendQuery($j)
+  result = await r.conn.readResponse()
   
 proc db*(r: RethinkClient, db: string): RqlDatabase =
   new(result)

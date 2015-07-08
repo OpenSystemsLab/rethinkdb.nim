@@ -62,21 +62,16 @@ proc disconnect*(r: RethinkClient) =
   r.sock.closeSocket()
   r.sockConnected = false
   
-proc readResponse(r: RethinkClient) {.async.} =
-  var data: string
-  #var token: uint64
-  var length: int
-  var message: string
-  while true:
-    data = await r.sock.recv(12)
-    if data == "":
-      r.disconnect()
+proc readResponse*(r: RethinkClient): Future[string] {.async.} =
+  let data = await r.sock.recv(12)
+  if data == "":
+    r.disconnect()
       
-    let header = unpack(">Q<i", data)
-    #token = header[0].getUQuad
-    length = header[1].getInt
-    message = await r.sock.recv(length)
-    L.log(lvlDebug, "[$#, $#, $#]" % [$header[0].getUQuad, $length, message])
+  let header = unpack(">Q<i", data)
+  #token = header[0].getUQuad
+  #length = header[1].getInt
+  result = await r.sock.recv(header[1].getInt)
+  L.log(lvlDebug, "[$#, $#, $#]" % [$header[0].getUQuad, $header[1].getInt, result])
 
 proc isConnected*(r: RethinkClient): bool {.noSideEffect, inline.} =
   return r.sockConnected
@@ -87,7 +82,6 @@ proc connect*(r: RethinkClient) {.async.} =
     await r.sock.connect(r.address, r.port)
     r.sockConnected = true
     await r.handshake()
-    asyncCheck r.readResponse()
   
 proc reconnect*(r: RethinkClient) {.async.} =
   await r.connect()
