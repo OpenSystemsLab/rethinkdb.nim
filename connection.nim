@@ -72,9 +72,9 @@ proc readResponse(r: RethinkClient) {.async.} =
     if data == "":
       r.disconnect()
       
-    let header = unpack(">Q<I", data)
+    let header = unpack(">Q<i", data)
     #token = header[0].getUQuad
-    length = header[1].getUInt.int
+    length = header[1].getInt
     message = await r.sock.recv(length)
     L.log(lvlDebug, "[$#, $#, $#]" % [$header[0].getUQuad, $length, message])
 
