@@ -59,6 +59,10 @@ proc handshake(r: RethinkClient) {.async.} =
     raise newException(RqlDriverError, data)
   L.log(lvlDebug, "Handshake success...")
 
+proc disconnect*(r: RethinkClient) =
+  r.sock.closeSocket()
+  r.sockConnected = false
+  
 proc readResponse(r: RethinkClient) {.async.} =
   var data: string
   #var token: uint64
@@ -66,6 +70,9 @@ proc readResponse(r: RethinkClient) {.async.} =
   var message: string
   while true:
     data = await r.sock.recv(12)
+    if data == "":
+      r.disconnect()
+      
     let header = unpack(">Q<I", data)
     #token = header[0].getUQuad
     length = header[1].getUInt.int
@@ -86,6 +93,3 @@ proc connect*(r: RethinkClient) {.async.} =
 proc reconnect*(r: RethinkClient) {.async.} =
   await r.connect()
 
-proc disconnect*(r: RethinkClient) =
-  r.sock.closeSocket()
-  r.sockConnected = false
