@@ -2,13 +2,16 @@ import asyncdispatch
 import rawsockets
 import strutils
 import logging
+import json
 import struct
+
 import ql2
+import term
 
 const
   BUFFER_SIZE: int = 1024
 type
-
+  
   RethinkClientBase = object of RootObj
     address: string
     port: Port
@@ -23,15 +26,54 @@ type
 
   RethinkClient* = ref RethinkClientBase
 
+  Response* = ref object of RootObj
+    kind*: ResponseType
+    token*: uint64
+    data*: JsonNode
+    backtrace*: JsonNode
+    profile*: JsonNode
+
+  Query* = ref object of RootObj
+    kind*: QueryType
+    term*: Term
+    options*: MutableDatum  
+
+
 var
   L = newConsoleLogger()
 
-proc sendQuery*(r: RethinkClient, query: string) {.async.} =
-  L.log(lvlDebug, "Sending query: $#" % [query])
+proc `$`*(q: Query): string =
+  var j = newJArray()
+  j.add(newJInt(q.kind.ord))
+  j.add(%q.term)
+  if not q.options.isNil:
+    j.add(%q.options)
+  else:
+    j.add(newJObject())
+  result = $j
 
+proc `$`*(r: Response): string =
+  var j = newJArray()
+  j.add(newJString($r.kind))
+  j.add(r.data)
+  #if r.kind != SUCCESS_ATOM:
+  #  j.add(r.backtrace)
+  #  j.add(r.profile)
+  result = $j
+proc newResponse(s: string, t: uint64 = 0): Response =
+  new(result)
+  let json = parseJson(s)
+  result.kind = (ResponseType)json["t"].num
+  result.token = t
+  result.data = json["r"]
+  if not json["b"].isNil:
+    result.backtrace = json["b"]
+  if not json["p"].isNil:
+    result.profile = json["p"]  
+  
+proc nextToken(r: RethinkClient): uint64 =
   r.queryToken.inc()
-  let data = newStruct(">q<i$#s" % $query.len).add(r.queryToken).add(query.len.int32).add(query).pack()
-  await r.sock.send(data)
+  result = r.queryToken
 
 proc newRethinkClient*(address = "127.0.0.1", port = Port(28015), auth = ""): RethinkClient =
   assert address != ""
@@ -61,8 +103,35 @@ proc handshake(r: RethinkClient) {.async.} =
 proc disconnect*(r: RethinkClient) =
   r.sock.closeSocket()
   r.sockConnected = false
+
+proc runQuery(r: RethinkClient, q: Query, token: uint64 = 0) {.async.} =
+  L.log(lvlDebug, "Sending query: $#" % [$q])
+
+  if token == 0:
+    var token = r.nextToken
   
-proc readResponse*(r: RethinkClient): Future[string] {.async.} =
+  let term = $q
+  let termLen = term.len.int32
+  let data = newStruct(">q<i$#s" % $termLen).add(token).add(termLen).add(term).pack()
+  await r.sock.send(data)
+
+proc startQuery(r: RethinkClient, term: Term) {.async.} =
+  var q: Query
+  new(q)
+  q.kind = START
+  q.term = term
+  #q.options
+
+  await r.runQuery(q)
+  
+proc continueQuery*(r: RethinkClient, token: uint64 = 0) {.async.} =
+  L.log(lvlDebug, "Sending continue query")
+  var q: Query
+  new(q)
+  q.kind = CONTINUE
+  await r.runQuery(q, token)
+  
+proc readResponse*(r: RethinkClient): Future[Response] {.async.} =
   let data = await r.sock.recv(12)
   if data == "":
     r.disconnect()
@@ -70,8 +139,10 @@ proc readResponse*(r: RethinkClient): Future[string] {.async.} =
   let header = unpack(">Q<i", data)
   #token = header[0].getUQuad
   #length = header[1].getInt
-  result = await r.sock.recv(header[1].getInt)
-  L.log(lvlDebug, "[$#, $#, $#]" % [$header[0].getUQuad, $header[1].getInt, result])
+  let buf = await r.sock.recv(header[1].getInt)
+  L.log(lvlDebug, "[$#, $#, $#]" % [$header[0].getUQuad, $header[1].getInt, buf])
+
+  result = newResponse(buf, header[0].getUQuad)
 
 proc isConnected*(r: RethinkClient): bool {.noSideEffect, inline.} =
   return r.sockConnected
