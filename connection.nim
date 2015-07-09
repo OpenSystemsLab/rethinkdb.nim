@@ -21,7 +21,8 @@ type
     queryToken: uint64
 
   RqlDriverError* = object of SystemError
-  RqlIOError* = object of IOError
+  RqlClientError* = object of SystemError
+  RqlCompileError* = object of SystemError
   RqlRuntimeError* = object of SystemError
 
   RethinkClient* = ref RethinkClientBase

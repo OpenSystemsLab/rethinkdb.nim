@@ -47,16 +47,31 @@ type
 #  result.term.datum = &o
   
 proc run*(r: RQL): Future[JsonNode] {.async.} =
-  result = newJArray()
-  await r.conn.connect()
+  if not r.conn.isConnected:    
+    await r.conn.connect()
   await r.conn.startQuery(r.term)
   var response = await r.conn.readResponse()
-  
-  result.add(response.data)
-  while response.kind == SUCCESS_PARTIAL:
-    await r.conn.continueQuery(response.token)
-    response = await r.conn.readResponse()
-    result.add(response.data)
+
+  case response.kind
+  of SUCCESS_ATOM:
+    result = response.data[0]
+  of WAIT_COMPLETE:
+    discard
+  of SUCCESS_PARTIAL, SUCCESS_SEQUENCE:
+    result = newJArray()  
+    result.add(response.data[0])
+    while response.kind == SUCCESS_PARTIAL:
+      await r.conn.continueQuery(response.token)
+      response = await r.conn.readResponse()
+      result.add(response.data[0])
+  of CLIENT_ERROR:
+    raise newException(RqlClientError, $response.data[0])
+  of COMPILE_ERROR:
+    raise newException(RqlCompileError, $response.data[0])
+  of RUNTIME_ERROR:
+    raise newException(RqlRuntimeError, $response.data[0])
+  else:
+    raise newException(RqlDriverError, "Unknow response type $#" % [$response.kind])
   
 proc db*(r: RethinkClient, db: string): RqlDatabase =
   new(result)
