@@ -63,10 +63,25 @@ proc RString*(s: string): RqlDatum =
   result.term = newTerm(DATUM)
   result.term.datum = &s
 
-proc RObject*(obj: openArray[tuple[key: string, val: MutableDatum]]): RqlDatum =
+proc RBool*(b: bool): RqlDatum =
   new(result)
   result.term = newTerm(DATUM)
-  result.term.datum = &obj
+  result.term.datum = &b
+
+proc RNum*(n: int): RqlDatum =
+  new(result)
+  result.term = newTerm(DATUM)
+  result.term.datum = &n
+
+proc RArray*(a: openArray[MutableDatum]): RqlDatum =
+  new(result)
+  result.term = newTerm(DATUM)
+  result.term.datum = &a
+  
+proc RObject*(o: openArray[tuple[key: string, val: MutableDatum]]): RqlDatum =
+  new(result)
+  result.term = newTerm(DATUM)
+  result.term.datum = &o
   
 proc run*(r: RQL): Future[string] {.async.} =
   await r.conn.connect()
@@ -83,13 +98,18 @@ proc db*(r: RethinkClient, db: string): RqlDatabase =
   result.term = newTerm(DB)
   result.term.args.add(RString(db).term)
 
+proc dbList*(r: RethinkClient): RqlQuery =
+  new(result)
+  result.conn = r
+  result.term = newTerm(DB_LIST)
+  
 proc table*(r: RqlDatabase, table: string): RqlTable =
   new(result)
   result.conn = r.conn
   result.term = newTerm(TABLE)
   result.term.args.add(r.term)
   result.term.args.add(RString(table).term)
-
+  
 proc filter*(r: RqlTable, data: openArray[tuple[key: string, val: MutableDatum]]): RqlQuery =
   new(result)
   result.conn = r.conn

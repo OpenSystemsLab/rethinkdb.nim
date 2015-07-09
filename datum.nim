@@ -57,15 +57,17 @@ proc `&`*(n: int): MutableDatum =
   result.kind = R_NUM
   result.num = n
 
-proc `&`*(arr: seq[MutableDatum]): MutableDatum =
+proc `&`*(a: openArray[MutableDatum]): MutableDatum =
   new(result)
   result.kind = R_ARRAY
-  result.arr = arr
+  result.arr = @[]
+  for x in a:
+    result.arr.add(x)
 
-proc `&`*(obj: openArray[tuple[key: string, val: MutableDatum]]): MutableDatum =
+proc `&`*(o: openArray[tuple[key: string, val: MutableDatum]]): MutableDatum =
   new(result)
   result.kind = R_OBJECT
   result.obj = @[]
-  for x in obj:
+  for x in o:
     result.obj.add(x)  
       
