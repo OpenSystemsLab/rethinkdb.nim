@@ -74,24 +74,50 @@ proc run*(r: RQL): Future[JsonNode] {.async.} =
     raise newException(RqlDriverError, "Unknow response type $#" % [$response.kind])
   
 proc db*(r: RethinkClient, db: string): RqlDatabase =
+  ## Reference a database.    
   new(result)
   result.conn = r
   result.term = newTerm(DB)
   result.term.args.add(%db)
+  
+proc dbCreate*(r: RethinkClient, table: string): RqlQuery =
+  ## Create a table  
+  new(result)
+  result.conn = r
+  result.term = newTerm(DB_CREATE)
+  result.term.args.add(%table)
+
+proc dbDrop*(r: RethinkClient, table: string): RqlQuery =
+  ## Drop a database
+  new(result)
+  result.term = newTerm(DB_DROP)
+  result.term.args.add(%table)
 
 proc dbList*(r: RethinkClient): RqlQuery =
+  ## List all database names in the system. The result is a list of strings.
   new(result)
   result.conn = r
   result.term = newTerm(DB_LIST)
+ 
   
 proc table*(r: RqlDatabase, table: string): RqlTable =
+  ## Select all documents in a table
   new(result)
   result.conn = r.conn
   result.term = newTerm(TABLE)
   result.term.args.add(r.term)
   result.term.args.add(%table)
+
+proc get*(r: RqlTable, id: string): RqlQuery =
+  ## Get a document by primary key
+  new(result)
+  result.conn = r.conn
+  result.term = newTerm(GET)
+  result.term.args.add(r.term)
+  result.term.args.add(%id)
   
 proc filter*(r: RqlTable, data: openArray[tuple[key: string, val: MutableDatum]]): RqlQuery =
+  ## Get all the documents for which the given predicate is true
   new(result)
   result.conn = r.conn
   result.term = newTerm(FILTER)
