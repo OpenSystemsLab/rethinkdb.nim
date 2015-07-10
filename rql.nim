@@ -3,6 +3,12 @@ import strtabs
 import strutils
 import json
 
+import ql2
+import term
+import datum
+import connection
+
+#export connection.RethinkClient
 
 type      
   RQL* = ref object of RootObj
@@ -79,21 +85,21 @@ proc db*(r: RethinkClient, db: string): RqlDatabase =
   new(result)
   result.conn = r
   result.term = newTerm(DB)
-  result.term.args.add(%db)
+  result.term.args.add(@db)
   
 proc dbCreate*(r: RethinkClient, table: string): RqlQuery =
   ## Create a table  
   new(result)
   result.conn = r
   result.term = newTerm(DB_CREATE)
-  result.term.args.add(%table)
+  result.term.args.add(@table)
 
 proc dbDrop*(r: RethinkClient, table: string): RqlQuery =
   ## Drop a database
   new(result)
   result.conn = r
   result.term = newTerm(DB_DROP)
-  result.term.args.add(%table)
+  result.term.args.add(@table)
 
 proc dbList*(r: RethinkClient): RqlQuery =
   ## List all database names in the system. The result is a list of strings.
@@ -105,7 +111,7 @@ proc table*(r: RethinkClient, table: string): RqlTable =
   new(result)
   result.conn = r
   result.term = newTerm(TABLE)
-  result.term.args.add(%table)
+  result.term.args.add(@table)
   
 proc table*(r: RqlDatabase, table: string): RqlTable =
   ## Select all documents in a table
@@ -113,15 +119,15 @@ proc table*(r: RqlDatabase, table: string): RqlTable =
   result.conn = r.conn
   result.term = newTerm(TABLE)
   result.term.args.add(r.term)
-  result.term.args.add(%table)
+  result.term.args.add(@table)
 
-proc get*(r: RQL, id: string): RqlQuery =
+proc get*[T: int|string](r: RQL, t: T): RqlQuery =
   ## Get a document by primary key
   new(result)
   result.conn = r.conn
   result.term = newTerm(GET)
   result.term.args.add(r.term)
-  result.term.args.add(%id)
+  result.term.args.add(@t)
   
 proc filter*(r: RQL, data: openArray[tuple[key: string, val: MutableDatum]]): RqlQuery =
   ## Get all the documents for which the given predicate is true
@@ -129,4 +135,4 @@ proc filter*(r: RQL, data: openArray[tuple[key: string, val: MutableDatum]]): Rq
   result.conn = r.conn
   result.term = newTerm(FILTER)
   result.term.args.add(r.term) 
-  result.term.args.add(%data)
+  result.term.args.add(@data)

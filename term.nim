@@ -38,22 +38,22 @@ proc `%`*(term: Term): JsonNode {.procvar.} =
 proc `$`*(t: Term): string =
   result = $(%t)
 
-proc `%`*(s: string): Term =
+proc `@`*(s: string): Term =
   result = newTerm(DATUM)
   result.datum = &s
 
-proc `%`*(b: bool): Term =
+proc `@`*(b: bool): Term =
   result = newTerm(DATUM)
   result.datum = &b
 
-proc `%`*(n: int): Term =
+proc `@`*(n: int): Term =
   result = newTerm(DATUM)
   result.datum = &n
 
-proc `%`*(a: openArray[MutableDatum]): Term =
+proc `@`*(a: openArray[MutableDatum]): Term =
   result = newTerm(DATUM)
   result.datum = &a
 
-proc `%`*(o: openArray[tuple[key: string, val: MutableDatum]]): Term =
+proc `@`*(o: openArray[tuple[key: string, val: MutableDatum]]): Term =
   result = newTerm(DATUM)
   result.datum = &o

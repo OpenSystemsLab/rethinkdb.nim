@@ -17,7 +17,7 @@ type
     address: string
     port: Port
     auth: string
-    options: ref Table[string, Term]
+    options: TableRef[string, Term]
     sock: AsyncFD
     sockConnected: bool
     queryToken: uint64
@@ -39,7 +39,7 @@ type
   Query* = ref object of RootObj
     kind*: QueryType
     term*: Term
-    options*: ref Table[string, Term]
+    options*: TableRef[string, Term]
 
 var
   L = newConsoleLogger()
@@ -87,7 +87,7 @@ proc addOption*(r: RethinkClient, k: string, v: Term) =
 proc use*(r: RethinkClient, db: string) =
   ## Change the default database on this connection.
   var term = newTerm(DB)
-  term.args.add(%db)
+  term.args.add(@db)
   r.addOption("db", term)
   
 proc newRethinkClient*(address = "127.0.0.1", port = Port(28015), auth = "", db = ""): RethinkClient =
@@ -138,7 +138,7 @@ proc runQuery(r: RethinkClient, q: Query, token: uint64 = 0) {.async.} =
   let data = newStruct(">q<i$#s" % $termLen).add(token).add(termLen).add(term).pack()
   await r.sock.send(data)
 
-proc startQuery(r: RethinkClient, term: Term) {.async.} =
+proc startQuery*(r: RethinkClient, term: Term) {.async.} =
   ## Send START query
   var q: Query
   new(q)
