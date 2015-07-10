@@ -80,6 +80,7 @@ proc dbList*(r: RethinkClient): RqlQuery =
 
 proc tableCreate*[T: RethinkClient|RqlDatabase](r: T, t: string): RqlQuery =
   ## Create a table
+  #TODO create options
   ast(r, TABLE_CREATE)
   result.term.args.add(@t)
   
@@ -87,6 +88,17 @@ proc tableDrop*[T: RethinkClient|RqlDatabase](r: T, t: string): RqlQuery =
   ## Drop a table
   ast(r, TABLE_DROP)
   result.term.args.add(@t)
+
+#TODO create index
+
+proc indexDrop*(r: RqlTable, name: string): RqlQuery =
+  ## Delete a previously created secondary index of this table  
+  ast(r, INDEX_DROP)
+  result.term.args.add(@name)
+
+proc indexList*(r: RqlTable, name: string): RqlQuery =
+  ## List all the secondary indexes of this table.
+  ast(r, INDEX_LIST)
   
 proc table*[T: RethinkClient|RqlDatabase](r: T, t: string): RqlTable =
   ## Select all documents in a table
