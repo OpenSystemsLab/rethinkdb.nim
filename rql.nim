@@ -1,3 +1,6 @@
+
+## This module provides all high-level API for query and manipulate data 
+
 import asyncdispatch
 import strtabs
 import strutils
@@ -8,52 +11,21 @@ import term
 import datum
 import connection
 
-#export connection.RethinkClient
 
 type      
-  RQL* = ref object of RootObj
+  RqlQuery* = ref object of RootObj
     conn*: RethinkClient
     term*: Term
 
-
-  RqlDatabase* = ref object of RQL
+  RqlDatabase* = ref object of RqlQuery
     db*: string
 
-  RqlTable* = ref object of RQL
+  RqlTable* = ref object of RqlQuery
     rdb*: RqlDatabase
     table*: string
     
-  RqlQuery* = ref object of RQL
-    discard
-
-# RqlDatum = ref object of RQL
-      
-#proc RStringTerm*(s: string): RqlDatum =
-#  new(result)  
-#  result.term = newTerm(DATUM)
-#  result.term.datum = &s
-
-#proc RBoolTerm*(b: bool): RqlDatum =
-#  new(result)
-#  result.term = newTerm(DATUM)
-#  result.term.datum = &b
-
-#proc RNumTerm*(n: int): RqlDatum =
-#  new(result)
-#  result.term = newTerm(DATUM)
-#  result.term.datum = &n
-
-#proc RArrayTerm*(a: openArray[MutableDatum]): RqlDatum =
-#  new(result)
-#  result.term = newTerm(DATUM)
-#  result.term.datum = &a
-  
-#proc RObjectTerm*(o: openArray[tuple[key: string, val: MutableDatum]]): RqlDatum =
-#  new(result)
-#  result.term = newTerm(DATUM)
-#  result.term.datum = &o
-  
-proc run*(r: RQL): Future[JsonNode] {.async.} =
+proc run*(r: RqlQuery): Future[JsonNode] {.async.} =
+  ## Run a query on a connection, returning a `JsonNode` contains single JSON result or an JsonArray, depending on the query.
   if not r.conn.isConnected:    
     await r.conn.connect()
   await r.conn.startQuery(r.term)
@@ -79,7 +51,7 @@ proc run*(r: RQL): Future[JsonNode] {.async.} =
     raise newException(RqlRuntimeError, $response.data[0])
   else:
     raise newException(RqlDriverError, "Unknow response type $#" % [$response.kind])
-  
+
 proc db*(r: RethinkClient, db: string): RqlDatabase =
   ## Reference a database.    
   new(result)
@@ -133,6 +105,7 @@ proc getAll*[T: int|string](r: RqlTable, args: openArray[T], index = ""): RqlTab
   ## Get all documents where the given value matches the value of the requested index
   ##
   ## Example:
+  ##
   ## .. code-block:: nim
   ##  # with primary index
   ##  r.table("posts").getAll([1, 1]).run()
