@@ -90,6 +90,7 @@ proc dbCreate*(r: RethinkClient, table: string): RqlQuery =
 proc dbDrop*(r: RethinkClient, table: string): RqlQuery =
   ## Drop a database
   new(result)
+  result.conn = r
   result.term = newTerm(DB_DROP)
   result.term.args.add(%table)
 

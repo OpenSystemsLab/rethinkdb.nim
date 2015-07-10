@@ -1,12 +1,14 @@
 import asyncdispatch
-import rethinkdb
 import json
+
+import ../rethinkdb
+
 
 proc main() {.async.} =  
   var r = newRethinkClient()
   var response = await r.db("test").table("users").filter({"username": &"admin", "active": &true}).run()
   echo($response)
-  response = await r.db("test").table("users").get("4048003589889908736").run
+  response = await r.db("test").table("users").get(response[0]["id"].str).run
   echo($response)
   #r.disconnect()
 

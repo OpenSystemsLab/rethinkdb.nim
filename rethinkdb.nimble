@@ -5,7 +5,7 @@ author        = "Huy Doan"
 description   = "RethinkDB driver for Nim"
 license       = "MIT"
 
-skipFiles     = "test.nim"
+skipDirs      = "tests"
 
 [Deps]
 Requires: "nim >= 0.11.2"

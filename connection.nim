@@ -145,8 +145,8 @@ proc readResponse*(r: RethinkClient): Future[Response] {.async.} =
 
   result = newResponse(buf, header[0].getUQuad)
 
-proc isConnected*(r: RethinkClient): bool {.noSideEffect, inline.} =
-  return r.sockConnected
+proc isConnected*(r: RethinkClient): bool {.noSideEffect.} =
+  r.sockConnected
   
 proc connect*(r: RethinkClient) {.async.} =
   if not r.isConnected:
