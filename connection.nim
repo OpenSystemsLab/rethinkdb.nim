@@ -22,6 +22,9 @@ type
     sockConnected: bool
     queryToken: uint64
 
+    conn*: RethinkClient
+    term*: Term
+
   RqlDriverError* = object of SystemError
   RqlClientError* = object of SystemError
   RqlCompileError* = object of SystemError
@@ -103,6 +106,8 @@ proc newRethinkClient*(address = "127.0.0.1", port = Port(28015), auth = "", db 
   result.sock = newAsyncRawSocket()
   result.sockConnected = false
   result.queryToken = 0
+
+  result.conn = result
 
   if not db.isNil and db != "":  
     result.use(db)

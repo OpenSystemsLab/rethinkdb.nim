@@ -52,53 +52,50 @@ proc run*(r: RqlQuery): Future[JsonNode] {.async.} =
   else:
     raise newException(RqlDriverError, "Unknow response type $#" % [$response.kind])
 
+template ast(r: static[RqlQuery], tt: static[TermType]): stmt {.immediate.} =
+  new(result)
+  result.conn = r.conn
+  result.term = newTerm(tt)
+  if not r.term.isNil:
+    result.term.args.add(r.term)
+
 proc db*(r: RethinkClient, db: string): RqlDatabase =
   ## Reference a database.    
-  new(result)
-  result.conn = r
-  result.term = newTerm(DB)
+  ast(r, DB)
   result.term.args.add(@db)
   
-proc dbCreate*(r: RethinkClient, table: string): RqlQuery =
+proc dbCreate*(r: RethinkClient, db: string): RqlQuery =
   ## Create a table  
-  new(result)
-  result.conn = r
-  result.term = newTerm(DB_CREATE)
-  result.term.args.add(@table)
+  ast(r, DB_CREATE)
+  result.term.args.add(@db)
 
-proc dbDrop*(r: RethinkClient, table: string): RqlQuery =
+proc dbDrop*(r: RethinkClient, db: string): RqlQuery =
   ## Drop a database
-  new(result)
-  result.conn = r
-  result.term = newTerm(DB_DROP)
-  result.term.args.add(@table)
+  ast(r, DB_DROP)
+  result.term.args.add(@db)
 
 proc dbList*(r: RethinkClient): RqlQuery =
   ## List all database names in the system. The result is a list of strings.
-  new(result)
-  result.conn = r
-  result.term = newTerm(DB_LIST)
+  ast(r, DB_LIST)
 
-proc table*(r: RethinkClient, table: string): RqlTable =
-  new(result)
-  result.conn = r
-  result.term = newTerm(TABLE)
-  result.term.args.add(@table)
+proc tableCreate*[T: RethinkClient|RqlDatabase](r: T, t: string): RqlQuery =
+  ## Create a table
+  ast(r, TABLE_CREATE)
+  result.term.args.add(@t)
   
-proc table*(r: RqlDatabase, table: string): RqlTable =
+proc tableDrop*[T: RethinkClient|RqlDatabase](r: T, t: string): RqlQuery =
+  ## Drop a table
+  ast(r, TABLE_DROP)
+  result.term.args.add(@t)
+  
+proc table*[T: RethinkClient|RqlDatabase](r: T, t: string): RqlTable =
   ## Select all documents in a table
-  new(result)
-  result.conn = r.conn
-  result.term = newTerm(TABLE)
-  result.term.args.add(r.term)
-  result.term.args.add(@table)
-
+  ast(r, TABLE)
+  result.term.args.add(@t)
+  
 proc get*[T: int|string](r: RqlTable, t: T): RqlQuery =
   ## Get a document by primary key
-  new(result)
-  result.conn = r.conn
-  result.term = newTerm(GET)
-  result.term.args.add(r.term)
+  ast(t, GET)
   result.term.args.add(@t)
 
 proc getAll*[T: int|string](r: RqlTable, args: openArray[T], index = ""): RqlTable =
@@ -111,11 +108,7 @@ proc getAll*[T: int|string](r: RqlTable, args: openArray[T], index = ""): RqlTab
   ##  r.table("posts").getAll([1, 1]).run()
   ##  # with secondary index
   ##  r.table("posts").getAll(["nim", "lang"], "tags").run()  
-  new(result)
-  result.conn = r.conn
-  result.term = newTerm(GET_ALL)
-  result.term.args.add(r.term)
-
+  ast(r, GET_ALL)
   for x in args:
     result.term.args.add(@x)
 
@@ -124,8 +117,5 @@ proc getAll*[T: int|string](r: RqlTable, args: openArray[T], index = ""): RqlTab
   
 proc filter*(r: RqlTable, data: openArray[tuple[key: string, val: MutableDatum]]): RqlTable =
   ## Get all the documents for which the given predicate is true
-  new(result)
-  result.conn = r.conn
-  result.term = newTerm(FILTER)
-  result.term.args.add(r.term) 
+  ast(r, FILTER)
   result.term.args.add(@data)
