@@ -96,9 +96,38 @@ proc indexDrop*(r: RqlTable, name: string): RqlQuery =
   ast(r, INDEX_DROP)
   result.term.args.add(@name)
 
-proc indexList*(r: RqlTable, name: string): RqlQuery =
+proc indexList*(r: RqlTable): RqlQuery =
   ## List all the secondary indexes of this table.
   ast(r, INDEX_LIST)
+
+proc indexRename*(r: RqlTable, oldName, newName: string, overwrite = false): RqlQuery =
+  ## Rename an existing secondary index on a table.
+  ## If the optional argument overwrite is specified as True,
+  ## a previously existing index with the new name will be deleted and the index will be renamed.
+  ## If overwrite is False (the default) an error will be raised
+  ## if the new index name already exists.
+  ast(r, INDEX_RENAME)
+  result.term.args.add(@oldName)
+  result.term.args.add(@newName)
+  if overwrite:
+    result.term.args.add(@true)
+
+proc indexStatus*(r: RqlTable, names: varargs[string]): RqlQuery =
+  ## Get the status of the specified indexes on this table,
+  ## or the status of all indexes on this table if no indexes are specified.
+  ast(r, INDEX_STATUS)
+  for name in names:
+    result.term.args.add(@name)
+
+proc indexWait*(r: RqlTable, names: varargs[string]): RqlQuery =
+  ## Wait for the specified indexes on this table to be ready
+  ast(r, INDEX_WAIT)
+  for name in names:
+    result.term.args.add(@name)
+
+proc changes*(r: RqlTable): RqlQuery =
+  ## Return a changefeed, an infinite stream of objects representing changes to a query    
+  ast(r, CHANGES)
   
 proc table*[T: RethinkClient|RqlDatabase](r: T, t: string): RqlTable =
   ## Select all documents in a table
