@@ -64,6 +64,14 @@ proc `&`*(a: openArray[MutableDatum]): MutableDatum =
   for x in a:
     result.arr.add(x)
 
+proc `&`*(a: seq[MutableDatum]): MutableDatum =
+  new(result)
+  result.kind = R_ARRAY
+  result.arr = @[]
+  for x in a:
+    result.arr.add(x)
+      
+
 proc `&`*(o: openArray[tuple[key: string, val: MutableDatum]]): MutableDatum =
   new(result)
   result.kind = R_OBJECT

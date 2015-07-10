@@ -54,6 +54,11 @@ proc `@`*(a: openArray[MutableDatum]): Term =
   result = newTerm(DATUM)
   result.datum = &a
 
+proc `@`*(a: seq[MutableDatum]): Term =
+  result = newTerm(DATUM)
+  result.datum = &a
+  
+  
 proc `@`*(o: openArray[tuple[key: string, val: MutableDatum]]): Term =
   result = newTerm(DATUM)
   result.datum = &o

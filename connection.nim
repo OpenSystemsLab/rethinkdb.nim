@@ -47,12 +47,13 @@ var
 proc `$`*(q: Query): string =
   var j = newJArray()
   j.add(newJInt(q.kind.ord))
-  j.add(%q.term)
-
-  var opts = newJObject()
-  for k, v in q.options.pairs():
-    opts.add(k, %v)
-  j.add(opts)
+  
+  if q.kind == START:
+    j.add(%q.term)
+    var opts = newJObject()
+    for k, v in q.options.pairs():
+        opts.add(k, %v)
+    j.add(opts)
   result = $j
 
 proc `$`*(r: Response): string =
@@ -129,9 +130,10 @@ proc runQuery(r: RethinkClient, q: Query, token: uint64 = 0) {.async.} =
   q.options = r.options
   
   L.log(lvlDebug, "Sending query: $#" % [$q])
-  
+
+  var token = token
   if token == 0:
-    var token = r.nextToken
+    token = r.nextToken
   
   let term = $q
   let termLen = term.len.int32
@@ -160,12 +162,12 @@ proc readResponse*(r: RethinkClient): Future[Response] {.async.} =
     r.disconnect()
       
   let header = unpack(">Q<i", data)
-  #token = header[0].getUQuad
-  #length = header[1].getInt
-  let buf = await r.sock.recv(header[1].getInt)
-  L.log(lvlDebug, "Response: [$#, $#, $#]" % [$header[0].getUQuad, $header[1].getInt, buf])
+  let token = header[0].getUQuad
+  let length = header[1].getInt
+  let buf = await r.sock.recv(length)
+  L.log(lvlDebug, "Response: [$#, $#, $#]" % [$token, $length, buf])
 
-  result = newResponse(buf, header[0].getUQuad)
+  result = newResponse(buf, token)
 
 proc isConnected*(r: RethinkClient): bool {.noSideEffect, inline.} =
   r.sockConnected

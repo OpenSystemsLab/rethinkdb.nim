@@ -66,11 +66,11 @@ proc run*(r: RQL): Future[JsonNode] {.async.} =
     discard
   of SUCCESS_PARTIAL, SUCCESS_SEQUENCE:
     result = newJArray()  
-    result.add(response.data[0])
+    result.add(response.data)
     while response.kind == SUCCESS_PARTIAL:
       await r.conn.continueQuery(response.token)
       response = await r.conn.readResponse()
-      result.add(response.data[0])
+      result.add(response.data)
   of CLIENT_ERROR:
     raise newException(RqlClientError, $response.data[0])
   of COMPILE_ERROR:
@@ -121,15 +121,35 @@ proc table*(r: RqlDatabase, table: string): RqlTable =
   result.term.args.add(r.term)
   result.term.args.add(@table)
 
-proc get*[T: int|string](r: RQL, t: T): RqlQuery =
+proc get*[T: int|string](r: RqlTable, t: T): RqlQuery =
   ## Get a document by primary key
   new(result)
   result.conn = r.conn
   result.term = newTerm(GET)
   result.term.args.add(r.term)
   result.term.args.add(@t)
+
+proc getAll*[T: int|string](r: RqlTable, args: openArray[T], index = ""): RqlTable =
+  ## Get all documents where the given value matches the value of the requested index
+  ##
+  ## Example:
+  ## .. code-block:: nim
+  ##  # with primary index
+  ##  r.table("posts").getAll([1, 1]).run()
+  ##  # with secondary index
+  ##  r.table("posts").getAll(["nim", "lang"], "tags").run()  
+  new(result)
+  result.conn = r.conn
+  result.term = newTerm(GET_ALL)
+  result.term.args.add(r.term)
+
+  for x in args:
+    result.term.args.add(@x)
+
+  if index != "":
+    result.term.options = &{"index": &index}
   
-proc filter*(r: RQL, data: openArray[tuple[key: string, val: MutableDatum]]): RqlQuery =
+proc filter*(r: RqlTable, data: openArray[tuple[key: string, val: MutableDatum]]): RqlTable =
   ## Get all the documents for which the given predicate is true
   new(result)
   result.conn = r.conn
