@@ -9,7 +9,6 @@ type
     conn*: RethinkClient
     term*: Term
 
-  RqlDatum = ref object of RQL
 
   RqlDatabase* = ref object of RQL
     db*: string
@@ -20,6 +19,8 @@ type
     
   RqlQuery* = ref object of RQL
     discard
+
+# RqlDatum = ref object of RQL
       
 #proc RStringTerm*(s: string): RqlDatum =
 #  new(result)  
@@ -99,7 +100,12 @@ proc dbList*(r: RethinkClient): RqlQuery =
   new(result)
   result.conn = r
   result.term = newTerm(DB_LIST)
- 
+
+proc table*(r: RethinkClient, table: string): RqlTable =
+  new(result)
+  result.conn = r
+  result.term = newTerm(TABLE)
+  result.term.args.add(%table)
   
 proc table*(r: RqlDatabase, table: string): RqlTable =
   ## Select all documents in a table
@@ -109,7 +115,7 @@ proc table*(r: RqlDatabase, table: string): RqlTable =
   result.term.args.add(r.term)
   result.term.args.add(%table)
 
-proc get*(r: RqlTable, id: string): RqlQuery =
+proc get*(r: RQL, id: string): RqlQuery =
   ## Get a document by primary key
   new(result)
   result.conn = r.conn
@@ -117,7 +123,7 @@ proc get*(r: RqlTable, id: string): RqlQuery =
   result.term.args.add(r.term)
   result.term.args.add(%id)
   
-proc filter*(r: RqlTable, data: openArray[tuple[key: string, val: MutableDatum]]): RqlQuery =
+proc filter*(r: RQL, data: openArray[tuple[key: string, val: MutableDatum]]): RqlQuery =
   ## Get all the documents for which the given predicate is true
   new(result)
   result.conn = r.conn

@@ -4,18 +4,20 @@ import strutils
 import logging
 import json
 import struct
+import tables
 
 import ql2
 import term
 
 const
   BUFFER_SIZE: int = 1024
-type
   
+type
   RethinkClientBase = object of RootObj
     address: string
     port: Port
     auth: string
+    options: ref Table[string, Term]
     sock: AsyncFD
     sockConnected: bool
     queryToken: uint64
@@ -37,8 +39,7 @@ type
   Query* = ref object of RootObj
     kind*: QueryType
     term*: Term
-    options*: MutableDatum  
-
+    options*: ref Table[string, Term]
 
 var
   L = newConsoleLogger()
@@ -47,20 +48,23 @@ proc `$`*(q: Query): string =
   var j = newJArray()
   j.add(newJInt(q.kind.ord))
   j.add(%q.term)
-  if not q.options.isNil:
-    j.add(%q.options)
-  else:
-    j.add(newJObject())
+
+  var opts = newJObject()
+  for k, v in q.options.pairs():
+    opts.add(k, %v)
+  j.add(opts)
   result = $j
 
 proc `$`*(r: Response): string =
   var j = newJArray()
   j.add(newJString($r.kind))
   j.add(r.data)
+  #TODO handle backtrace
   #if r.kind != SUCCESS_ATOM:
   #  j.add(r.backtrace)
   #  j.add(r.profile)
   result = $j
+  
 proc newResponse(s: string, t: uint64 = 0): Response =
   new(result)
   let json = parseJson(s)
@@ -76,17 +80,32 @@ proc nextToken(r: RethinkClient): uint64 =
   r.queryToken.inc()
   result = r.queryToken
 
-proc newRethinkClient*(address = "127.0.0.1", port = Port(28015), auth = ""): RethinkClient =
+proc addOption*(r: RethinkClient, k: string, v: Term) =
+  ## Set a global option
+  r.options[k] = v
+    
+proc use*(r: RethinkClient, db: string) =
+  ## Change the default database on this connection.
+  var term = newTerm(DB)
+  term.args.add(%db)
+  r.addOption("db", term)
+  
+proc newRethinkClient*(address = "127.0.0.1", port = Port(28015), auth = "", db = ""): RethinkClient =
+  ## Init new client instance
   assert address != ""
   assert port != Port(0)
   new(result)
   result.address = address
   result.port = port
   result.auth = auth
+  result.options = newTable[string, Term]()
   result.sock = newAsyncRawSocket()
   result.sockConnected = false
   result.queryToken = 0
 
+  if not db.isNil and db != "":  
+    result.use(db)
+  
 proc handshake(r: RethinkClient) {.async.} =
   L.log(lvlDebug, "Preparing handshake...")
   var data: string
@@ -102,12 +121,15 @@ proc handshake(r: RethinkClient) {.async.} =
   L.log(lvlDebug, "Handshake success...")
 
 proc disconnect*(r: RethinkClient) =
+  ## Close an open connection
   r.sock.closeSocket()
   r.sockConnected = false
 
 proc runQuery(r: RethinkClient, q: Query, token: uint64 = 0) {.async.} =
+  q.options = r.options
+  
   L.log(lvlDebug, "Sending query: $#" % [$q])
-
+  
   if token == 0:
     var token = r.nextToken
   
@@ -117,15 +139,15 @@ proc runQuery(r: RethinkClient, q: Query, token: uint64 = 0) {.async.} =
   await r.sock.send(data)
 
 proc startQuery(r: RethinkClient, term: Term) {.async.} =
+  ## Send START query
   var q: Query
   new(q)
   q.kind = START
-  q.term = term
-  #q.options
-
+  q.term = term    
   await r.runQuery(q)
   
 proc continueQuery*(r: RethinkClient, token: uint64 = 0) {.async.} =
+  ## Send CONTINUE query
   L.log(lvlDebug, "Sending continue query")
   var q: Query
   new(q)
@@ -141,14 +163,15 @@ proc readResponse*(r: RethinkClient): Future[Response] {.async.} =
   #token = header[0].getUQuad
   #length = header[1].getInt
   let buf = await r.sock.recv(header[1].getInt)
-  L.log(lvlDebug, "[$#, $#, $#]" % [$header[0].getUQuad, $header[1].getInt, buf])
+  L.log(lvlDebug, "Response: [$#, $#, $#]" % [$header[0].getUQuad, $header[1].getInt, buf])
 
   result = newResponse(buf, header[0].getUQuad)
 
-proc isConnected*(r: RethinkClient): bool {.noSideEffect.} =
+proc isConnected*(r: RethinkClient): bool {.noSideEffect, inline.} =
   r.sockConnected
   
 proc connect*(r: RethinkClient) {.async.} =
+  ## Create a new connection to the database server
   if not r.isConnected:
     L.log(lvlDebug, "Connecting to server at $#:$#..." % [r.address, $r.port])
     await r.sock.connect(r.address, r.port)
@@ -156,5 +179,6 @@ proc connect*(r: RethinkClient) {.async.} =
     await r.handshake()
   
 proc reconnect*(r: RethinkClient) {.async.} =
+  ## Close and reopen a connection
+  r.disconnect()
   await r.connect()
-

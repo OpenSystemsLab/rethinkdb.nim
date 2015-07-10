@@ -4,14 +4,11 @@ import json
 import ../rethinkdb
 
 
-proc main() {.async.} =  
-  var r = newRethinkClient()
-  var response = await r.db("test").table("users").filter({"username": &"admin", "active": &true}).run()
+when isMainModule:
+  var r = newRethinkClient(db="test")
+  var response = waitFor r.table("users").filter({"username": &"admin", "active": &true}).run()
   echo($response)
-  response = await r.db("test").table("users").get(response[0]["id"].str).run
+  response = waitFor r.table("users").get(response[0]["id"].str).run
   echo($response)
   #r.disconnect()
 
-when isMainModule:
-  asyncCheck main()
-  runForever()
