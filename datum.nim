@@ -1,22 +1,23 @@
 import json
-import ql2
+import tables
 import macros
 
+import ql2
 type
   MutableDatum* = ref object of RootObj
     case kind*: DatumType
-    of R_STR:
-      str*: string
+    of R_NULL:
+      discard  
     of R_BOOL:
       bval*: bool
     of R_NUM:
-      num*: int
+      num*: float64
+    of R_STR, R_JSON:
+      str*: string
     of R_ARRAY:
       arr*: seq[MutableDatum]
     of R_OBJECT:
-      obj*: seq[tuple[key: string, val: MutableDatum]]  
-    else:
-      discard
+      obj*: TableRef[string, MutableDatum]
 
 proc `%`*(m: MutableDatum): JsonNode =
   if m.isNil:
@@ -27,7 +28,7 @@ proc `%`*(m: MutableDatum): JsonNode =
   of R_BOOL:
     result = newJBool(m.bval)
   of R_NUM:
-    result = newJInt(m.num)
+    result = newJFloat(m.num)
   of R_ARRAY:
     result = newJArray()
     result.add(newJInt(MAKE_ARRAY.ord))
@@ -37,8 +38,8 @@ proc `%`*(m: MutableDatum): JsonNode =
     result.add(arr)
   of R_OBJECT:
     result = newJObject()
-    for x in m.obj:
-      result.fields.add((key: x.key, val: %x.val))
+    for k, v in m.obj.pairs:
+      result.fields.add((key: k, val: %v))
   else:
     result = newJNull()
 
@@ -52,10 +53,10 @@ proc `&`*(b: bool): MutableDatum =
   result.kind = R_BOOL
   result.bval = b
 
-proc `&`*(n: int): MutableDatum =
+proc `&`*[T: int|float](n: T): MutableDatum =
   new(result)
   result.kind = R_NUM
-  result.num = n
+  result.num = n.float64
 
 proc `&`*(a: openArray[MutableDatum]): MutableDatum =
   new(result)
@@ -71,15 +72,14 @@ proc `&`*(a: seq[MutableDatum]): MutableDatum =
   for x in a:
     result.arr.add(x)
       
-
 proc `&`*(o: openArray[tuple[key: string, val: MutableDatum]]): MutableDatum =
   new(result)
   result.kind = R_OBJECT
-  result.obj = @[]
+  result.obj = newTable[string, MutableDatum]()
   for x in o:
-    result.obj.add(x)  
+    result.obj[x[0]] = x[1]
       
-proc toMutableDatum(x: NimNode): NimNode {.compiletime.} =
+proc toDatum(x: NimNode): NimNode {.compiletime.} =
   ## Borrowed from JSON module
   ##
   ## See: https://github.com/nim-lang/Nim/blob/devel/lib/pure/json.nim#L690
@@ -87,13 +87,13 @@ proc toMutableDatum(x: NimNode): NimNode {.compiletime.} =
   of nnkBracket:
     result = newNimNode(nnkBracket)
     for i in 0 .. <x.len:
-      result.add(toMutableDatum(x[i]))
+      result.add(toDatum(x[i]))
 
   of nnkTableConstr:
     result = newNimNode(nnkTableConstr)
     for i in 0 .. <x.len:
       assert x[i].kind == nnkExprColonExpr
-      result.add(newNimNode(nnkExprColonExpr).add(x[i][0]).add(toMutableDatum(x[i][1])))
+      result.add(newNimNode(nnkExprColonExpr).add(x[i][0]).add(toDatum(x[i][1])))
 
   else:
     result = x
@@ -103,4 +103,4 @@ proc toMutableDatum(x: NimNode): NimNode {.compiletime.} =
 macro `&*`*(x: expr): expr =
   ## Convert an expression to a MutableDatum directly, without having to specify
   ## `%` for every element.
-  result = toMutableDatum(x)
+  result = toDatum(x)

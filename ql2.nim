@@ -36,6 +36,7 @@ type
     R_STR = 4
     R_ARRAY = 5
     R_OBJECT = 6
+    R_JSON = 7
     
   TermType* = enum
     DATUM = 1
