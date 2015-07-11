@@ -245,23 +245,33 @@ proc call*(r: RethinkClient, f: Term): RqlQuery =
 
 proc makeObj*(r: RethinkClient, o: MutableDatum): RqlQuery =
   ast(r, MAKE_OBJ)
-  result.term.args.add(@o)
+  result.term.options = o
+
+proc makeArray*(r: RethinkClient, a: MutableDatum): RqlQuery =
+  ast(r, MAKE_ARRAY)
+  result.term.options = a
+
+proc makeVar*[T](r: RethinkClient, x: T): RqlQuery =
+  ast(r, IMPLICIT_VAR)
+  #result.term.args.add(@x)
 
 proc expr*[T](r: RethinkClient, x: T): RqlQuery =
   ## Construct a ReQL JSON object from a native object
 
   #TODO does this really works as expected
-
   when x is RqlQuery:
     result = x
-  elif x is MutableDatum:
+  when x is MutableDatum:
     case x.kind
     of R_OBJECT:
-      result = makeObj(x.obj)
+      result = r.makeObj(x)
+    of R_ARRAY:
+      result = r.makeArray(x)
     else:
-      discard
+      #TODO cover all cases
+      result = r.makeVar(x)
   else:
-    discard
+    result = r.makeVar(x)
 
 proc js*(r: RethinkClient, js: string, timeout = 0): RqlQuery =
   ## Create a javascript expression.
