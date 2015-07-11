@@ -4,12 +4,12 @@ RethinkDB driver for Nim
 ## WIP
 Some simple commands are working now
 
-### Manipulating databases
+#### Manipulating databases
 * dbCreate
 * dbDrop
 * dbList
 
-### Manipulating tables
+#### Manipulating tables
 * tableCreate
 * tableDrop
 * tableList
@@ -21,14 +21,14 @@ Some simple commands are working now
 * indexWait
 * changes
 
-### Writing data
+#### Writing data
 * insert
 * update
 * replace
 * delete
 * sync
 
-### Selecting data
+#### Selecting data
 * db
 * table
 * get
@@ -37,21 +37,14 @@ Some simple commands are working now
 * filter
 
 
-
-
 Usage:
 ------
 ```nim
 import asyncdispatch
 import rethinkdb
 
-
-proc main() {.async.} =
-  var r = newRethinkClient()
-  discard await r.db("test").table("users").filter({"username": &"admin", "active": true}).run()
-  r.disconnect()
-
-when isMainModule:
-  asyncCheck main()
-  runForever()
+var r = newRethinkClient()
+r.use("test")
+discard waitFor r.table("users").filter(&*{"active": true}).run()
+r.disconnect()
 ```
