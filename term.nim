@@ -1,6 +1,7 @@
 import json
-
+import times
 import datum
+
 import ql2
 
 type      
@@ -65,3 +66,11 @@ proc `@`*(o: openArray[tuple[key: string, val: MutableDatum]]): Term =
 proc `@`*(m: MutableDatum): Term =
   result = newTerm(DATUM)
   result.datum = m
+
+proc `@`*(b: BinaryData): Term =
+  result = newTerm(DATUM)
+  result.datum = &b
+
+proc `@`*(t: TimeInfo): Term =
+  result = newTerm(DATUM)
+  result.datum = &t

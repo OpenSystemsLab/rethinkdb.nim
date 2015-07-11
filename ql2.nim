@@ -30,13 +30,15 @@ type
     STOP = 3
     
   DatumType* = enum
-    R_NULL = 1
-    R_BOOL = 2
-    R_NUM = 3
-    R_STR = 4
-    R_ARRAY = 5
-    R_OBJECT = 6
-    R_JSON = 7
+    R_NULL
+    R_BOOLEAN
+    R_NUMBER
+    R_STRING
+    R_ARRAY
+    R_OBJECT
+    R_JSON
+    R_BINARY
+    R_TIME
     
   TermType* = enum
     DATUM = 1

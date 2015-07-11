@@ -1,33 +1,42 @@
 import json
 import tables
 import macros
+import times
+import base64
 
 import ql2
 type
+  BinaryData* = ref object of RootObj
+    data*: string
+
   MutableDatum* = ref object of RootObj
     case kind*: DatumType
     of R_NULL:
-      discard  
-    of R_BOOL:
+      discard
+    of R_BOOLEAN:
       bval*: bool
-    of R_NUM:
+    of R_NUMBER:
       num*: float64
-    of R_STR, R_JSON:
+    of R_STRING, R_JSON:
       str*: string
     of R_ARRAY:
       arr*: seq[MutableDatum]
     of R_OBJECT:
       obj*: TableRef[string, MutableDatum]
+    of R_BINARY:
+      binary*: BinaryData
+    of R_TIME:
+      time*: TimeInfo
 
 proc `%`*(m: MutableDatum): JsonNode =
   if m.isNil:
     return newJNull()
   case m.kind
-  of R_STR:
+  of R_STRING:
     result = newJString(m.str)
-  of R_BOOL:
+  of R_BOOLEAN:
     result = newJBool(m.bval)
-  of R_NUM:
+  of R_NUMBER:
     result = newJFloat(m.num)
   of R_ARRAY:
     result = newJArray()
@@ -40,22 +49,26 @@ proc `%`*(m: MutableDatum): JsonNode =
     result = newJObject()
     for k, v in m.obj.pairs:
       result.fields.add((key: k, val: %v))
+  of R_BINARY:
+    result = %*{"$reql_type$": "BINARY", "data": m.binary.data}
+  of R_TIME:
+    result = %*{"$reql_type$": "TIME", "epoch_time": m.time.timeInfoToTime.toSeconds(), "timezone": m.time.format("zzz")}
   else:
     result = newJNull()
 
 proc `&`*(s: string): MutableDatum =
   new(result)
-  result.kind = R_STR
+  result.kind = R_STRING
   result.str = s
 
 proc `&`*(b: bool): MutableDatum =
   new(result)
-  result.kind = R_BOOL
+  result.kind = R_BOOLEAN
   result.bval = b
 
 proc `&`*[T: int|float](n: T): MutableDatum =
   new(result)
-  result.kind = R_NUM
+  result.kind = R_NUMBER
   result.num = n.float64
 
 proc `&`*(a: openArray[MutableDatum]): MutableDatum =
@@ -71,14 +84,28 @@ proc `&`*(a: seq[MutableDatum]): MutableDatum =
   result.arr = @[]
   for x in a:
     result.arr.add(x)
-      
+
 proc `&`*(o: openArray[tuple[key: string, val: MutableDatum]]): MutableDatum =
   new(result)
   result.kind = R_OBJECT
   result.obj = newTable[string, MutableDatum]()
   for x in o:
     result.obj[x[0]] = x[1]
-      
+
+proc `&`*(b: BinaryData): MutableDatum =
+  new(result)
+  result.kind = R_BINARY
+  result.binary = b
+
+proc `&`*(t: TimeInfo): MutableDatum =
+  new(result)
+  result.kind = R_TIME
+  result.time = t
+
+proc newBinary*(s: string): BinaryData =
+  new(result)
+  result.data = base64.encode(s)
+
 proc toDatum(x: NimNode): NimNode {.compiletime.} =
   ## Borrowed from JSON module
   ##

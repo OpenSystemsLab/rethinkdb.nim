@@ -5,6 +5,7 @@ import asyncdispatch
 import strtabs
 import strutils
 import json
+import macros
 
 import ql2
 import term
@@ -52,7 +53,7 @@ proc run*(r: RqlQuery): Future[JsonNode] {.async.} =
   else:
     raise newException(RqlDriverError, "Unknow response type $#" % [$response.kind])
 
-template ast(r: static[RqlQuery], tt: static[TermType]): stmt {.immediate.} =
+template ast[T](r: static[T], tt: static[TermType]): stmt {.immediate.} =
   new(result)
   result.conn = r.conn
   result.term = newTerm(tt)
@@ -61,12 +62,7 @@ template ast(r: static[RqlQuery], tt: static[TermType]): stmt {.immediate.} =
 #--------------------
 # Manipulating databases
 #--------------------
-
-proc db*(r: RethinkClient, db: string): RqlDatabase =
-  ## Reference a database.    
-  ast(r, DB)
-  result.term.args.add(@db)
-  
+    
 proc dbCreate*(r: RethinkClient, db: string): RqlQuery =
   ## Create a table  
   ast(r, DB_CREATE)
@@ -146,16 +142,38 @@ proc insert*(r: RqlTable, data: openArray[MutableDatum], durability="hard", retu
   result.term.args.add(@data)
   result.term.options = &*{"durability": durability, "return_changes": returnChanges, "conflict": conflict}
 
-proc update*(r: RqlTable, data: MutableDatum, durability="hard", returnChanges=false, nonAtomic=false): RqlQuery =
+proc update*(r: RqlQuery, data: MutableDatum, durability="hard", returnChanges=false, nonAtomic=false): RqlQuery =
   ## Insert documents into a table. Accepts a single document or an array of documents
   ast(r, UPDATE)
   result.term.args.add(@data)
   result.term.options = &*{"durability": durability, "return_changes": returnChanges, "non_atomic": nonAtomic}
 
+proc replace*(r: RqlQuery, data: MutableDatum, durability="hard", returnChanges=false, nonAtomic=false): RqlQuery =
+  ## Replace documents in a table. Accepts a JSON document or a ReQL expression,
+  ## and replaces the original document with the new one. The new document must have the same primary key as the original document.
+  ast(r, REPLACE)
+  result.term.args.add(@data)
+  result.term.options = &*{"durability": durability, "return_changes": returnChanges, "non_atomic": nonAtomic}
+
+proc delete*(r: RqlQuery, data: MutableDatum, durability="hard", returnChanges=false): RqlQuery =
+  ## Delete one or more documents from a table.
+  ast(r, DELETE)
+  result.term.args.add(@data)
+  result.term.options = &*{"durability": durability, "return_changes": returnChanges}
+
+proc sync*(r: RqlQuery, data: MutableDatum): RqlQuery =
+  ## `sync` ensures that writes on a given table are written to permanent storage
+  ast(r, SYNC)
+  result.term.args.add(@data)
   
 #--------------------
 # Selecting data
 #--------------------
+
+proc db*(r: RethinkClient, db: string): RqlDatabase =
+  ## Reference a database.    
+  ast(r, DB)
+  result.term.args.add(@db)
   
 proc table*[T: RethinkClient|RqlDatabase](r: T, t: string): RqlTable =
   ## Select all documents in a table
@@ -164,10 +182,10 @@ proc table*[T: RethinkClient|RqlDatabase](r: T, t: string): RqlTable =
 
 proc get*[T: int|string](r: RqlTable, t: T): RqlQuery =
   ## Get a document by primary key
-  ast(t, GET)
+  ast(r, GET)
   result.term.args.add(@t)
 
-proc getAll*[T: int|string](r: RqlTable, args: openArray[T], index = ""): RqlTable =
+proc getAll*[T: int|string](r: RqlTable, args: openArray[T], index = ""): RqlQuery =
   ## Get all documents where the given value matches the value of the requested index
   ##
   ## Example:
@@ -183,8 +201,41 @@ proc getAll*[T: int|string](r: RqlTable, args: openArray[T], index = ""): RqlTab
 
   if index != "":
     result.term.options = &*{"index": index}
+
+proc between*(r: RqlTable, lowerKey, upperKey: MutableDatum, index = "id", leftBound = "closed", rightBound = "open"): RqlQuery =
+  ## Get all documents between two keys
+  ast(r, BETWEEN)
+  result.term.args.add(@lowerKey)
+  result.term.args.add(@upperKey)
+  result.term.options = &*{"index": index, "left_bound": leftBound, "right_bound": rightBound}
   
-proc filter*(r: RqlTable, data: MutableDatum): RqlTable =
+proc filter*(r: RqlQuery, data: MutableDatum, default = false): RqlQuery =
   ## Get all the documents for which the given predicate is true
   ast(r, FILTER)
   result.term.args.add(@data)
+  if default:
+    result.term.options = &*{"default": true}
+
+  #TODO filter by expr
+
+#--------------------
+# Joins
+#--------------------
+
+#proc innerJoin*(r: RqlQuery, 
+#--------------------
+# Transformations
+#--------------------
+
+proc args*(r: RethinkClient, args: MutableDatum): RqlQuery =
+  ## `r.args` is a special term that’s used to splice an array of arguments into another term
+  ast(r, ARGS)
+  result.term.args.add(@args)
+
+proc binary*(r: RethinkClient, data: BinaryData): RqlQuery =
+  ## Encapsulate binary data within a query.
+  ast(r, BINARY)
+  result.term.args.add(@data)
+#--------------------
+# Document manipulation
+#--------------------
