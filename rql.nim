@@ -58,6 +58,9 @@ template ast(r: static[RqlQuery], tt: static[TermType]): stmt {.immediate.} =
   result.term = newTerm(tt)
   if not r.term.isNil:
     result.term.args.add(r.term)
+#--------------------
+# Manipulating databases
+#--------------------
 
 proc db*(r: RethinkClient, db: string): RqlDatabase =
   ## Reference a database.    
@@ -78,6 +81,10 @@ proc dbList*(r: RethinkClient): RqlQuery =
   ## List all database names in the system. The result is a list of strings.
   ast(r, DB_LIST)
 
+#--------------------
+# Manipulating tables
+#--------------------
+  
 proc tableCreate*[T: RethinkClient|RqlDatabase](r: T, t: string): RqlQuery =
   ## Create a table
   #TODO create options
@@ -128,12 +135,33 @@ proc indexWait*(r: RqlTable, names: varargs[string]): RqlQuery =
 proc changes*(r: RqlTable): RqlQuery =
   ## Return a changefeed, an infinite stream of objects representing changes to a query    
   ast(r, CHANGES)
+
+#--------------------
+# Writing data
+#--------------------
+
+proc insert*(r: RqlTable, data: openArray[MutableDatum], durability="hard", returnChanges=false, conflict="error"): RqlQuery =
+  ## Insert documents into a table. Accepts a single document or an array of documents
+  ast(r, INSERT)
+  result.term.args.add(@data)
+  result.term.options = &*{"durability": durability, "return_changes": returnChanges, "conflict": conflict}
+
+proc update*(r: RqlTable, data: MutableDatum, durability="hard", returnChanges=false, nonAtomic=false): RqlQuery =
+  ## Insert documents into a table. Accepts a single document or an array of documents
+  ast(r, UPDATE)
+  result.term.args.add(@data)
+  result.term.options = &*{"durability": durability, "return_changes": returnChanges, "non_atomic": nonAtomic}
+
+  
+#--------------------
+# Selecting data
+#--------------------
   
 proc table*[T: RethinkClient|RqlDatabase](r: T, t: string): RqlTable =
   ## Select all documents in a table
   ast(r, TABLE)
   result.term.args.add(@t)
-  
+
 proc get*[T: int|string](r: RqlTable, t: T): RqlQuery =
   ## Get a document by primary key
   ast(t, GET)
@@ -154,9 +182,9 @@ proc getAll*[T: int|string](r: RqlTable, args: openArray[T], index = ""): RqlTab
     result.term.args.add(@x)
 
   if index != "":
-    result.term.options = &{"index": &index}
+    result.term.options = &*{"index": index}
   
-proc filter*(r: RqlTable, data: openArray[tuple[key: string, val: MutableDatum]]): RqlTable =
+proc filter*(r: RqlTable, data: MutableDatum): RqlTable =
   ## Get all the documents for which the given predicate is true
   ast(r, FILTER)
   result.term.args.add(@data)

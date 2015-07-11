@@ -1,6 +1,6 @@
 import json
 import ql2
-
+import macros
 
 type
   MutableDatum* = ref object of RootObj
@@ -79,3 +79,28 @@ proc `&`*(o: openArray[tuple[key: string, val: MutableDatum]]): MutableDatum =
   for x in o:
     result.obj.add(x)  
       
+proc toMutableDatum(x: NimNode): NimNode {.compiletime.} =
+  ## Borrowed from JSON module
+  ##
+  ## See: https://github.com/nim-lang/Nim/blob/devel/lib/pure/json.nim#L690
+  case x.kind
+  of nnkBracket:
+    result = newNimNode(nnkBracket)
+    for i in 0 .. <x.len:
+      result.add(toMutableDatum(x[i]))
+
+  of nnkTableConstr:
+    result = newNimNode(nnkTableConstr)
+    for i in 0 .. <x.len:
+      assert x[i].kind == nnkExprColonExpr
+      result.add(newNimNode(nnkExprColonExpr).add(x[i][0]).add(toMutableDatum(x[i][1])))
+
+  else:
+    result = x
+
+  result = prefix(result, "&")
+
+macro `&*`*(x: expr): expr =
+  ## Convert an expression to a MutableDatum directly, without having to specify
+  ## `%` for every element.
+  result = toMutableDatum(x)

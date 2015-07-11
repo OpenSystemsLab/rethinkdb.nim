@@ -12,7 +12,7 @@ type
       args*: seq[Term]
       options*: MutableDatum
 
-proc newTerm*(tt: TermType): Term =
+proc newTerm*(tt: TermType): Term {.noSideEffect, inline.} =
   new(result)
   result.tt = tt
   case tt
@@ -61,3 +61,7 @@ proc `@`*(a: seq[MutableDatum]): Term =
 proc `@`*(o: openArray[tuple[key: string, val: MutableDatum]]): Term =
   result = newTerm(DATUM)
   result.datum = &o
+
+proc `@`*(m: MutableDatum): Term =
+  result = newTerm(DATUM)
+  result.datum = m
