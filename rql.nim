@@ -1,5 +1,5 @@
 
-## This module provides all high-level API for query and manipulate data 
+## This module provides all high-level API for query and manipulate data
 
 import asyncdispatch
 import strtabs
@@ -13,7 +13,7 @@ import datum
 import connection
 
 
-type      
+type
   RqlQuery* = ref object of RootObj
     conn*: RethinkClient
     term*: Term
@@ -24,10 +24,10 @@ type
   RqlTable* = ref object of RqlQuery
     rdb*: RqlDatabase
     table*: string
-    
+
 proc run*(r: RqlQuery): Future[JsonNode] {.async.} =
   ## Run a query on a connection, returning a `JsonNode` contains single JSON result or an JsonArray, depending on the query.
-  if not r.conn.isConnected:    
+  if not r.conn.isConnected:
     await r.conn.connect()
   await r.conn.startQuery(r.term)
   var response = await r.conn.readResponse()
@@ -38,7 +38,7 @@ proc run*(r: RqlQuery): Future[JsonNode] {.async.} =
   of WAIT_COMPLETE:
     discard
   of SUCCESS_PARTIAL, SUCCESS_SEQUENCE:
-    result = newJArray()  
+    result = newJArray()
     result.add(response.data)
     while response.kind == SUCCESS_PARTIAL:
       await r.conn.continueQuery(response.token)
@@ -62,9 +62,9 @@ template ast[T](r: static[T], tt: static[TermType]): stmt {.immediate.} =
 #--------------------
 # Manipulating databases
 #--------------------
-    
+
 proc dbCreate*(r: RethinkClient, db: string): RqlQuery =
-  ## Create a table  
+  ## Create a table
   ast(r, DB_CREATE)
   result.term.args.add(@db)
 
@@ -80,13 +80,13 @@ proc dbList*(r: RethinkClient): RqlQuery =
 #--------------------
 # Manipulating tables
 #--------------------
-  
+
 proc tableCreate*[T: RethinkClient|RqlDatabase](r: T, t: string): RqlQuery =
   ## Create a table
   #TODO create options
   ast(r, TABLE_CREATE)
   result.term.args.add(@t)
-  
+
 proc tableDrop*[T: RethinkClient|RqlDatabase](r: T, t: string): RqlQuery =
   ## Drop a table
   ast(r, TABLE_DROP)
@@ -95,7 +95,7 @@ proc tableDrop*[T: RethinkClient|RqlDatabase](r: T, t: string): RqlQuery =
 #TODO create index
 
 proc indexDrop*(r: RqlTable, name: string): RqlQuery =
-  ## Delete a previously created secondary index of this table  
+  ## Delete a previously created secondary index of this table
   ast(r, INDEX_DROP)
   result.term.args.add(@name)
 
@@ -129,7 +129,7 @@ proc indexWait*(r: RqlTable, names: varargs[string]): RqlQuery =
     result.term.args.add(@name)
 
 proc changes*(r: RqlTable): RqlQuery =
-  ## Return a changefeed, an infinite stream of objects representing changes to a query    
+  ## Return a changefeed, an infinite stream of objects representing changes to a query
   ast(r, CHANGES)
 
 #--------------------
@@ -165,16 +165,16 @@ proc sync*(r: RqlQuery, data: MutableDatum): RqlQuery =
   ## `sync` ensures that writes on a given table are written to permanent storage
   ast(r, SYNC)
   result.term.args.add(@data)
-  
+
 #--------------------
 # Selecting data
 #--------------------
 
 proc db*(r: RethinkClient, db: string): RqlDatabase =
-  ## Reference a database.    
+  ## Reference a database.
   ast(r, DB)
   result.term.args.add(@db)
-  
+
 proc table*[T: RethinkClient|RqlDatabase](r: T, t: string): RqlTable =
   ## Select all documents in a table
   ast(r, TABLE)
@@ -194,7 +194,7 @@ proc getAll*[T: int|string](r: RqlTable, args: openArray[T], index = ""): RqlQue
   ##  # with primary index
   ##  r.table("posts").getAll([1, 1]).run()
   ##  # with secondary index
-  ##  r.table("posts").getAll(["nim", "lang"], "tags").run()  
+  ##  r.table("posts").getAll(["nim", "lang"], "tags").run()
   ast(r, GET_ALL)
   for x in args:
     result.term.args.add(@x)
@@ -208,7 +208,7 @@ proc between*(r: RqlTable, lowerKey, upperKey: MutableDatum, index = "id", leftB
   result.term.args.add(@lowerKey)
   result.term.args.add(@upperKey)
   result.term.options = &*{"index": index, "left_bound": leftBound, "right_bound": rightBound}
-  
+
 proc filter*(r: RqlQuery, data: MutableDatum, default = false): RqlQuery =
   ## Get all the documents for which the given predicate is true
   ast(r, FILTER)
@@ -222,7 +222,7 @@ proc filter*(r: RqlQuery, data: MutableDatum, default = false): RqlQuery =
 # Joins
 #--------------------
 
-#proc innerJoin*(r: RqlQuery, 
+#proc innerJoin*(r: RqlQuery,
 #--------------------
 # Transformations
 #--------------------
@@ -236,6 +236,38 @@ proc binary*(r: RethinkClient, data: BinaryData): RqlQuery =
   ## Encapsulate binary data within a query.
   ast(r, BINARY)
   result.term.args.add(@data)
+
+proc call*(r: RethinkClient, f: Term): RqlQuery =
+  ## Call an anonymous function using return values from other ReQL commands or queries as arguments.
+  ##
+  ## renamed from `do` function to avoid keyword conflict
+  ast(r, FUNC)
+
+proc makeObj*(r: RethinkClient, o: MutableDatum): RqlQuery =
+  ast(r, MAKE_OBJ)
+  result.term.args.add(@o)
+
+proc expr*[T](r: RethinkClient, x: T): RqlQuery =
+  ## Construct a ReQL JSON object from a native object
+
+  #TODO does this really works as expected
+
+  when x is RqlQuery:
+    result = x
+  elif x is MutableDatum:
+    case x.kind
+    of R_OBJECT:
+      result = makeObj(x.obj)
+    else:
+      discard
+  else:
+    discard
+
+proc js*(r: RethinkClient, js: string, timeout = 0): RqlQuery =
+  ## Create a javascript expression.
+  ast(r, JAVASCRIPT)
+  result.term.args.add(@js)
+
 #--------------------
 # Document manipulation
 #--------------------
