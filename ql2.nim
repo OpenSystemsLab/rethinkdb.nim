@@ -28,18 +28,19 @@ type
     START = 1
     CONTINUE = 2
     STOP = 3
-    
+
   DatumType* = enum
     R_NULL
     R_BOOLEAN
-    R_NUMBER
+    R_FLOAT
+    R_INTEGER
     R_STRING
     R_ARRAY
     R_OBJECT
     R_JSON
     R_BINARY
     R_TIME
-    
+
   TermType* = enum
     DATUM = 1
     MAKE_ARRAY = 2
@@ -210,7 +211,7 @@ type
     WAIT = 177
     REBALANCE = 179
     MINVAL = 180
-    MAXVAL = 181    
+    MAXVAL = 181
     BETWEEN = 182
     FLOOR = 183
     CEIL = 184
