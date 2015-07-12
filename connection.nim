@@ -11,7 +11,7 @@ import term
 
 const
   BUFFER_SIZE: int = 1024
-  
+
 type
   RethinkClientBase = object of RootObj
     address: string
@@ -50,7 +50,7 @@ var
 proc `$`*(q: Query): string =
   var j = newJArray()
   j.add(newJInt(q.kind.ord))
-  
+
   if q.kind == START:
     j.add(%q.term)
     var opts = newJObject()
@@ -68,7 +68,7 @@ proc `$`*(r: Response): string =
   #  j.add(r.backtrace)
   #  j.add(r.profile)
   result = $j
-  
+
 proc newResponse(s: string, t: uint64 = 0): Response =
   new(result)
   let json = parseJson(s)
@@ -78,8 +78,8 @@ proc newResponse(s: string, t: uint64 = 0): Response =
   if not json["b"].isNil:
     result.backtrace = json["b"]
   if not json["p"].isNil:
-    result.profile = json["p"]  
-  
+    result.profile = json["p"]
+
 proc nextToken(r: RethinkClient): uint64 =
   r.queryToken.inc()
   result = r.queryToken
@@ -87,13 +87,13 @@ proc nextToken(r: RethinkClient): uint64 =
 proc addOption*(r: RethinkClient, k: string, v: Term) =
   ## Set a global option
   r.options[k] = v
-    
+
 proc use*(r: RethinkClient, db: string) =
   ## Change the default database on this connection.
   var term = newTerm(DB)
   term.args.add(@db)
   r.addOption("db", term)
-  
+
 proc newRethinkClient*(address = "127.0.0.1", port = Port(28015), auth = "", db = ""): RethinkClient =
   ## Init new client instance
   assert address != ""
@@ -109,18 +109,18 @@ proc newRethinkClient*(address = "127.0.0.1", port = Port(28015), auth = "", db 
 
   result.conn = result
 
-  if not db.isNil and db != "":  
+  if not db.isNil and db != "":
     result.use(db)
-  
+
 proc handshake(r: RethinkClient) {.async.} =
   L.log(lvlDebug, "Preparing handshake...")
   var data: string
   if r.auth.len > 0:
     data = newStruct("<ii$#si" % [$r.auth.len]).add(HandshakeV0_4).add(r.auth.len.int32).add(r.auth).add(HandshakeJSON).pack()
   else:
-    data = newStruct("<iii").add(HandshakeV0_4).add(0.int32).add(HandshakeJSON).pack()    
+    data = newStruct("<iii").add(HandshakeV0_4).add(0.int32).add(HandshakeJSON).pack()
   await r.sock.send(data)
-  
+
   data = await r.sock.recv(BUFFER_SIZE)
   if data[0..6] != "SUCCESS":
     raise newException(RqlDriverError, data)
@@ -133,13 +133,13 @@ proc disconnect*(r: RethinkClient) =
 
 proc runQuery(r: RethinkClient, q: Query, token: uint64 = 0) {.async.} =
   q.options = r.options
-  
+
   L.log(lvlDebug, "Sending query: $#" % [$q])
 
   var token = token
   if token == 0:
     token = r.nextToken
-  
+
   let term = $q
   let termLen = term.len.int32
   let data = newStruct(">q<i$#s" % $termLen).add(token).add(termLen).add(term).pack()
@@ -150,9 +150,9 @@ proc startQuery*(r: RethinkClient, term: Term) {.async.} =
   var q: Query
   new(q)
   q.kind = START
-  q.term = term    
+  q.term = term
   await r.runQuery(q)
-  
+
 proc continueQuery*(r: RethinkClient, token: uint64 = 0) {.async.} =
   ## Send CONTINUE query
   L.log(lvlDebug, "Sending continue query")
@@ -160,12 +160,12 @@ proc continueQuery*(r: RethinkClient, token: uint64 = 0) {.async.} =
   new(q)
   q.kind = CONTINUE
   await r.runQuery(q, token)
-  
+
 proc readResponse*(r: RethinkClient): Future[Response] {.async.} =
   let data = await r.sock.recv(12)
   if data == "":
     r.disconnect()
-      
+
   let header = unpack(">Q<i", data)
   let token = header[0].getUQuad
   let length = header[1].getInt
@@ -176,7 +176,7 @@ proc readResponse*(r: RethinkClient): Future[Response] {.async.} =
 
 proc isConnected*(r: RethinkClient): bool {.noSideEffect, inline.} =
   r.sockConnected
-  
+
 proc connect*(r: RethinkClient) {.async.} =
   ## Create a new connection to the database server
   if not r.isConnected:
@@ -184,7 +184,7 @@ proc connect*(r: RethinkClient) {.async.} =
     await r.sock.connect(r.address, r.port)
     r.sockConnected = true
     await r.handshake()
-  
+
 proc reconnect*(r: RethinkClient) {.async.} =
   ## Close and reopen a connection
   r.disconnect()
