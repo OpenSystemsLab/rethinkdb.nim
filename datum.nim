@@ -15,8 +15,10 @@ type
       discard
     of R_BOOLEAN:
       bval*: bool
-    of R_NUMBER:
-      num*: float64
+    of R_INTEGER:
+      num*: int64
+    of R_FLOAT:
+      fval*: float64
     of R_STRING, R_JSON:
       str*: string
     of R_ARRAY:
@@ -36,8 +38,10 @@ proc `%`*(m: MutableDatum): JsonNode =
     result = newJString(m.str)
   of R_BOOLEAN:
     result = newJBool(m.bval)
-  of R_NUMBER:
-    result = newJFloat(m.num)
+  of R_FLOAT:
+    result = newJFloat(m.fval)
+  of R_INTEGER:
+    result = newJInt(m.num)
   of R_ARRAY:
     result = newJArray()
     result.add(newJInt(MAKE_ARRAY.ord))
@@ -66,10 +70,15 @@ proc `&`*(b: bool): MutableDatum =
   result.kind = R_BOOLEAN
   result.bval = b
 
-proc `&`*[T: int|float](n: T): MutableDatum =
+proc `&`*(n: float64): MutableDatum =
   new(result)
-  result.kind = R_NUMBER
-  result.num = n.float64
+  result.kind = R_FLOAT
+  result.fval = n
+
+proc `&`*(n: int64): MutableDatum =
+  new(result)
+  result.kind = R_INTEGER
+  result.num = n
 
 proc `&`*(a: openArray[MutableDatum]): MutableDatum =
   new(result)
