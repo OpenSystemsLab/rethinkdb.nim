@@ -90,25 +90,19 @@ proc makeFunc*[T: RethinkClient|RqlQuery](r: T, f: RqlQuery): RqlQuery =
   result.term.args.add(makeArray(varId))
   result.term.args.add(f.term)
 
-
-
-proc datumTerm[T](r: RethinkClient, t: T): RqlQuery =
+proc datumTerm[T, U](r: T, t: U): RqlQuery =
   new(result)
   result.conn = r.conn
   result.term = t
 
-proc expr*[T, X](r: RethinkClient, x: T, depth = 20): X =
+proc expr*[T, U, V](r: T, x: U): V =
   ## Construct a ReQL JSON object from a native object
-
-  if depth <= 0:
-    raise newException(RqlDriverError, "Nesting depth limit exceeded")
 
   #TODO does this really works as expected
   when x is RqlQuery:
     result = x
   else:
     result = r.datumTerm(@x)
-
 
 #--------------------
 # Manipulating databases
@@ -316,7 +310,6 @@ proc `[]`*(r: RqlRow, s: string): RqlRow =
   ##
   ## .. code-block:: nim
   ##  r.row["age"]
-  echo r.firstVar 
   if r.firstVar:
     r.term.args.add(@s)
     r.firstVar = false
@@ -330,9 +323,118 @@ proc `[]`*(r: RqlRow, s: string): RqlRow =
 #--------------------
 
 proc `+`*[T](r: RqlQuery, b: T): RqlQuery =
+  ## Sum two numbers, concatenate two strings, or concatenate 2 arrays
   ast(r, ADD)
   result.term.args.add(@b)
 
-proc eq*[T](r: RqlRow, e: T): RqlQuery =
+proc `-`*[T](r: RqlQuery, b: T): RqlQuery =
+  ## Subtract two numbers.
+  ast(r, SUB)
+  result.term.args.add(@b)
+
+proc `*`*[T](r: RqlQuery, b: T): RqlQuery =
+  ## Multiply two numbers, or make a periodic array.
+  ast(r, MUL)
+  result.term.args.add(@b)
+
+proc `/`*[T](r: RqlQuery, b: T): RqlQuery =
+  ## Divide two numbers.
+  ast(r, DIV)
+  result.term.args.add(@b)
+
+proc `%`*[T](r: RqlQuery, b: T): RqlQuery =
+  ## Find the remainder when dividing two numbers.
+  ast(r, MOD)
+  result.term.args.add(@b)
+
+proc `and`*[T](r: RqlRow, b: T): expr =
+  ## Compute the logical “and” of two or more values
+  ast(r, AND)
+  result.term.args.add(@b)
+
+proc `&`*[T](r: RqlRow, e: T): expr =
+  ## Shortcut for `and`
+  r and e
+
+proc `or`*[T](r: RqlQuery, b: T): RqlQuery =
+  ## Compute the logical “or” of two or more values.
+  ast(r, OR)
+  result.term.args.add(@b)
+
+proc `|`*[T](r: RqlRow, e: T): expr =
+  ## Shortcut for `or`
+  r or e
+
+proc `eq`*[T](r: RqlRow, e: T): RqlQuery =
+  ## Test if two values are equal.
   ast(r, EQ)
-  result.term.args.add(r.expr(e))
+  result.term.args.add(r.expr(e).term)
+
+proc `==`*[T](r: RqlRow, e: T): expr =
+  ## Shortcut for `eq`
+  r.eq(e)
+
+proc `ne`*[T](r: RqlRow, e: T): RqlQuery =
+  ## Test if two values are not equal.
+  ast(r, NE)
+  result.term.args.add(r.expr(e).term)
+
+proc `!=`*[T](r: RqlRow, e: T): expr =
+  ## Shortcut for `ne`
+  r.ne(e)
+
+proc `gt`*[T](r: RqlRow, e: T): RqlQuery =
+  ## Test if the first value is greater than other.
+  ast(r, GT)
+  result.term.args.add(r.expr(e).term)
+
+proc `>`*[T](r: RqlRow, e: T): expr =
+  ## Shortcut for `gt`
+  r.gt(e)
+
+proc `ge`*[T](r: RqlRow, e: T): RqlQuery =
+  ## Test if the first value is greater than or equal to other.
+  ast(r, GE)
+  result.term.args.add(r.expr(e).term)
+
+proc `>=`*[T](r: RqlRow, e: T): expr =
+  ## Shortcut for `ge`
+  r.ge(e)
+
+proc `lt`*[T](r: RqlRow, e: T): RqlQuery =
+  ## Test if the first value is less than other.
+  ast(r, LT)
+  result.term.args.add(r.expr(e).term)
+
+proc `<`*[T](r: RqlRow, e: T): expr =
+  ## Shortcut for `lt`
+  r.lt(e)
+
+proc `le`*[T](r: RqlRow, e: T): RqlQuery =
+  ## Test if the first value is less than or equal to other.
+  ast(r, LE)
+  result.term.args.add(r.expr(e).term)
+
+proc `!==`*[T](r: RqlRow, e: T): expr =
+  ## Shortcut for `le`
+  r.le(e)
+
+proc `not`*[T](r: RqlRow, e: T): RqlQuery =
+  ## Compute the logical inverse (not) of an expression.
+  ast(r, NOT)
+  result.term.args.add(r.expr(e).term)
+
+proc `~`*[T](r: RqlRow, e: T): expr =
+  ## Shortcut for `not`
+  r not e
+
+proc random*(r: RethinkClient, x = 0, y = 1, float = true): RqlQuery =
+  ## Generate a random number between given (or implied) bounds.
+  ast(r, RANDOM)
+
+  if x != 0:
+    result.term.args.add(@x)
+  if x != 0 and y != 1:
+    result.term.args.add(@y)
+  if float == true:
+    result.term.options = &*{"float": float}
