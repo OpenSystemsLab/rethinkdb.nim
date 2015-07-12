@@ -25,6 +25,9 @@ type
     rdb*: RqlDatabase
     table*: string
 
+  RqlRow* = ref object of RqlQuery
+    firstVar: bool # indicate this is the first selector
+
 proc run*(r: RqlQuery): Future[JsonNode] {.async.} =
   ## Run a query on a connection, returning a `JsonNode` contains single JSON result or an JsonArray, depending on the query.
   if not r.conn.isConnected:
@@ -59,6 +62,54 @@ template ast[T](r: static[T], tt: static[TermType]): stmt {.immediate.} =
   result.term = newTerm(tt)
   if not r.term.isNil:
     result.term.args.add(r.term)
+
+proc makeArray*[T](a: T): Term {.inline.} =
+  result = newTerm(MAKE_ARRAY)
+  result.args.add(@a)
+
+proc makeObj*[T](r: RethinkClient, o: T): RqlQuery {.inline.} =
+  result = newTerm(MAKE_OBJ)
+  result.args.add(@o)
+
+proc makeVar*(r: RethinkClient): RqlQuery {.inline.} =
+  ast(r, IMPLICIT_VAR)
+
+
+proc makeFunc*[T: RethinkClient|RqlQuery](r: T, f: RqlQuery): RqlQuery =
+  ## Call an anonymous function using return values from other ReQL commands or queries as arguments.
+  ##
+  ## renamed from `do` function to avoid keyword conflict
+  var varId {.global.} = 0
+
+  varId.inc
+
+  new(result)
+  result.conn = r.conn
+  result.term = newTerm(FUNC)
+  #TODO args count
+  result.term.args.add(makeArray(varId))
+  result.term.args.add(f.term)
+
+
+
+proc datumTerm[T](r: RethinkClient, t: T): RqlQuery =
+  new(result)
+  result.conn = r.conn
+  result.term = t
+
+proc expr*[T, X](r: RethinkClient, x: T, depth = 20): X =
+  ## Construct a ReQL JSON object from a native object
+
+  if depth <= 0:
+    raise newException(RqlDriverError, "Nesting depth limit exceeded")
+
+  #TODO does this really works as expected
+  when x is RqlQuery:
+    result = x
+  else:
+    result = r.datumTerm(@x)
+
+
 #--------------------
 # Manipulating databases
 #--------------------
@@ -209,10 +260,14 @@ proc between*(r: RqlTable, lowerKey, upperKey: MutableDatum, index = "id", leftB
   result.term.args.add(@upperKey)
   result.term.options = &*{"index": index, "left_bound": leftBound, "right_bound": rightBound}
 
-proc filter*(r: RqlQuery, data: MutableDatum, default = false): RqlQuery =
+proc filter*[T: MutableDatum|RqlQuery](r: RqlQuery, data: T, default = false): RqlQuery =
   ## Get all the documents for which the given predicate is true
   ast(r, FILTER)
-  result.term.args.add(@data)
+  when data is MutableDatum:
+    result.term.args.add(@data)
+  else:
+    var f = r.makeFunc(data)
+    result.term.args.add(f.term)
   if default:
     result.term.options = &*{"default": true}
 
@@ -237,42 +292,6 @@ proc binary*(r: RethinkClient, data: BinaryData): RqlQuery =
   ast(r, BINARY)
   result.term.args.add(@data)
 
-proc call*(r: RethinkClient, f: Term): RqlQuery =
-  ## Call an anonymous function using return values from other ReQL commands or queries as arguments.
-  ##
-  ## renamed from `do` function to avoid keyword conflict
-  ast(r, FUNC)
-
-proc makeObj*(r: RethinkClient, o: MutableDatum): RqlQuery =
-  ast(r, MAKE_OBJ)
-  result.term.options = o
-
-proc makeArray*(r: RethinkClient, a: MutableDatum): RqlQuery =
-  ast(r, MAKE_ARRAY)
-  result.term.options = a
-
-proc makeVar*[T](r: RethinkClient, x: T): RqlQuery =
-  ast(r, IMPLICIT_VAR)
-  #result.term.args.add(@x)
-
-proc expr*[T](r: RethinkClient, x: T): RqlQuery =
-  ## Construct a ReQL JSON object from a native object
-
-  #TODO does this really works as expected
-  when x is RqlQuery:
-    result = x
-  when x is MutableDatum:
-    case x.kind
-    of R_OBJECT:
-      result = r.makeObj(x)
-    of R_ARRAY:
-      result = r.makeArray(x)
-    else:
-      #TODO cover all cases
-      result = r.makeVar(x)
-  else:
-    result = r.makeVar(x)
-
 proc js*(r: RethinkClient, js: string, timeout = 0): RqlQuery =
   ## Create a javascript expression.
   ast(r, JAVASCRIPT)
@@ -281,3 +300,26 @@ proc js*(r: RethinkClient, js: string, timeout = 0): RqlQuery =
 #--------------------
 # Document manipulation
 #--------------------
+
+proc row*(r: RethinkClient): RqlRow =
+  ast(r, BRACKET)
+  result.term.args.add(r.makeVar().term)
+  result.firstVar = true
+
+proc `[]`*(r: RqlRow, s: string): RqlRow =
+  echo r.firstVar
+  if r.firstVar:
+    r.term.args.add(@s)
+    r.firstVar = false
+    result = r
+  else:
+    ast(r, BRACKET)
+    result.term.args.add(@s)
+
+#--------------------
+# Math and logic
+#--------------------
+
+proc eq*[T](r: RqlRow, e: T): RqlQuery =
+  ast(r, EQ)
+  result.term.args.add(@e)
