@@ -302,12 +302,21 @@ proc js*(r: RethinkClient, js: string, timeout = 0): RqlQuery =
 #--------------------
 
 proc row*(r: RethinkClient): RqlRow =
+  ## Returns the currently visited document
+  ##
+  ## This proc must be called along with `[]` operator
   ast(r, BRACKET)
   result.term.args.add(r.makeVar().term)
   result.firstVar = true
 
 proc `[]`*(r: RqlRow, s: string): RqlRow =
-  echo r.firstVar
+  ## Operator for create row's fields chain
+  ##
+  ## Example:
+  ##
+  ## .. code-block:: nim
+  ##  r.row["age"]
+  echo r.firstVar 
   if r.firstVar:
     r.term.args.add(@s)
     r.firstVar = false
@@ -320,6 +329,10 @@ proc `[]`*(r: RqlRow, s: string): RqlRow =
 # Math and logic
 #--------------------
 
+proc `+`*[T](r: RqlQuery, b: T): RqlQuery =
+  ast(r, ADD)
+  result.term.args.add(@b)
+
 proc eq*[T](r: RqlRow, e: T): RqlQuery =
   ast(r, EQ)
-  result.term.args.add(@e)
+  result.term.args.add(r.expr(e))
