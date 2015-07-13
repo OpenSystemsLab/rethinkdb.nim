@@ -426,7 +426,7 @@ proc `~`*[T](r: RqlRow, e: T): expr =
   ## Shortcut for `not`
   r not e
 
-proc random*(r: RethinkClient, x = 0, y = 1, float = true): RqlQuery =
+proc random*(r: RethinkClient, x = 0, y = 1, isFloat = false): RqlQuery =
   ## Generate a random number between given (or implied) bounds.
   ast(r, RANDOM)
 
@@ -434,5 +434,5 @@ proc random*(r: RethinkClient, x = 0, y = 1, float = true): RqlQuery =
     result.addArg(@x)
   if x != 0 and y != 1:
     result.addArg(@y)
-  if float == true:
-    result.setOptions(&*{"float": float})
+  if isFloat:
+    result.setOptions(&*{"float": isFloat})
