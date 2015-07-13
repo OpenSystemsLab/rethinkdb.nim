@@ -15,15 +15,15 @@ import connection
 
 type
   RqlQuery* = ref object of RootObj
-    conn*: RethinkClient
-    term*: Term
+    conn: RethinkClient
+    term: Term
 
   RqlDatabase* = ref object of RqlQuery
-    db*: string
+    db: string
 
   RqlTable* = ref object of RqlQuery
-    rdb*: RqlDatabase
-    table*: string
+    rdb: RqlDatabase
+    table: string
 
   RqlRow* = ref object of RqlQuery
     firstVar: bool # indicate this is the first selector
@@ -56,7 +56,7 @@ proc run*(r: RqlQuery): Future[JsonNode] {.async.} =
   else:
     raise newException(RqlDriverError, "Unknow response type $#" % [$response.kind])
 
-template ast[T](r: static[T], tt: static[TermType]): stmt {.immediate.} =
+template ast[T](r: static[T], tt: static[TermType]): expr {.immediate.} =
   new(result)
   result.conn = r.conn
   result.term = newTerm(tt)
