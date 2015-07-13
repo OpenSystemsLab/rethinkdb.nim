@@ -406,7 +406,7 @@ proc `lt`*[T](r: RqlRow, e: T): RqlQuery =
   ast(r, LT)
   result.term.args.add(r.expr(e).term)
 
-proc `<`*[T](r: RqlRow, e: T): expr =
+proc `<`*[T](e: T, r: RqlRow): expr =
   ## Shortcut for `lt`
   r.lt(e)
 
@@ -415,7 +415,7 @@ proc `le`*[T](r: RqlRow, e: T): RqlQuery =
   ast(r, LE)
   result.term.args.add(r.expr(e).term)
 
-proc `!==`*[T](r: RqlRow, e: T): expr =
+proc `<=`*[T](e: T, r: RqlRow): expr =
   ## Shortcut for `le`
   r.le(e)
 
