@@ -56,12 +56,38 @@ proc run*(r: RqlQuery): Future[JsonNode] {.async.} =
   else:
     raise newException(RqlDriverError, "Unknow response type $#" % [$response.kind])
 
-template ast[T](r: static[T], tt: static[TermType]): expr {.immediate.} =
-  new(result)
-  result.conn = r.conn
-  result.term = newTerm(tt)
-  if not r.term.isNil:
-    result.term.args.add(r.term)
+macro ast(n: varargs[expr]): stmt =
+  result = newNimNode(nnkStmtList, n)
+  # new(result)
+  result.add(newCall("new", ident("result")))
+  # result.conn = r. conn
+  result.add(
+    newAssignment(
+      newDotExpr(ident("result"), ident("conn")),
+      newDotExpr(n[0], ident("conn"))
+    )
+  )
+  # result.term = newTerm(tt)
+  result.add(
+    newAssignment(
+      newDotExpr(ident("result"), ident("term")),
+      newCall("newTerm", n[1])
+    )
+  )
+
+  # result.addArg(r.term)
+  result.add(newCall("addArg", ident("result"), newDotExpr(n[0], ident("term"))))
+  if n.len > 2:
+    for i in 2..n.len-1:
+      result.add(newCall("addArg", ident("result"), prefix(n[i], "@")))
+
+
+proc addArg*(r: RqlQuery, t: Term) {.noSideEffect, inline.} =
+  if not t.isNil:
+    r.term.args.add(t)
+
+proc setOptions*(r: RqlQuery, m: MutableDatum) {.noSideEffect, inline.} =
+  r.term.options = m
 
 proc makeArray*[T](a: T): Term {.inline.} =
   result = newTerm(MAKE_ARRAY)
@@ -110,13 +136,11 @@ proc expr*[T, U, V](r: T, x: U): V =
 
 proc dbCreate*(r: RethinkClient, db: string): RqlQuery =
   ## Create a table
-  ast(r, DB_CREATE)
-  result.term.args.add(@db)
+  ast(r, DB_CREATE, db)
 
 proc dbDrop*(r: RethinkClient, db: string): RqlQuery =
   ## Drop a database
-  ast(r, DB_DROP)
-  result.term.args.add(@db)
+  ast(r, DB_DROP, db)
 
 proc dbList*(r: RethinkClient): RqlQuery =
   ## List all database names in the system. The result is a list of strings.
@@ -129,20 +153,17 @@ proc dbList*(r: RethinkClient): RqlQuery =
 proc tableCreate*[T: RethinkClient|RqlDatabase](r: T, t: string): RqlQuery =
   ## Create a table
   #TODO create options
-  ast(r, TABLE_CREATE)
-  result.term.args.add(@t)
+  ast(r, TABLE_CREATE, t)
 
 proc tableDrop*[T: RethinkClient|RqlDatabase](r: T, t: string): RqlQuery =
   ## Drop a table
-  ast(r, TABLE_DROP)
-  result.term.args.add(@t)
+  ast(r, TABLE_DROP, t)
 
 #TODO create index
 
-proc indexDrop*(r: RqlTable, name: string): RqlQuery =
+proc indexDrop*(r: RqlTable, t: string): RqlQuery =
   ## Delete a previously created secondary index of this table
-  ast(r, INDEX_DROP)
-  result.term.args.add(@name)
+  ast(r, INDEX_DROP, t)
 
 proc indexList*(r: RqlTable): RqlQuery =
   ## List all the secondary indexes of this table.
@@ -154,24 +175,22 @@ proc indexRename*(r: RqlTable, oldName, newName: string, overwrite = false): Rql
   ## a previously existing index with the new name will be deleted and the index will be renamed.
   ## If overwrite is False (the default) an error will be raised
   ## if the new index name already exists.
-  ast(r, INDEX_RENAME)
-  result.term.args.add(@oldName)
-  result.term.args.add(@newName)
+  ast(r, INDEX_RENAME, oldName, newName)
   if overwrite:
-    result.term.args.add(@true)
+    result.addArg(@true)
 
 proc indexStatus*(r: RqlTable, names: varargs[string]): RqlQuery =
   ## Get the status of the specified indexes on this table,
   ## or the status of all indexes on this table if no indexes are specified.
   ast(r, INDEX_STATUS)
   for name in names:
-    result.term.args.add(@name)
+    result.addArg(@name)
 
 proc indexWait*(r: RqlTable, names: varargs[string]): RqlQuery =
   ## Wait for the specified indexes on this table to be ready
   ast(r, INDEX_WAIT)
   for name in names:
-    result.term.args.add(@name)
+    result.addArg(@name)
 
 proc changes*(r: RqlTable): RqlQuery =
   ## Return a changefeed, an infinite stream of objects representing changes to a query
@@ -183,33 +202,28 @@ proc changes*(r: RqlTable): RqlQuery =
 
 proc insert*(r: RqlTable, data: openArray[MutableDatum], durability="hard", returnChanges=false, conflict="error"): RqlQuery =
   ## Insert documents into a table. Accepts a single document or an array of documents
-  ast(r, INSERT)
-  result.term.args.add(@data)
-  result.term.options = &*{"durability": durability, "return_changes": returnChanges, "conflict": conflict}
+  ast(r, INSERT, data)
+  result.setOptions(&*{"durability": durability, "return_changes": returnChanges, "conflict": conflict})
 
 proc update*(r: RqlQuery, data: MutableDatum, durability="hard", returnChanges=false, nonAtomic=false): RqlQuery =
   ## Insert documents into a table. Accepts a single document or an array of documents
-  ast(r, UPDATE)
-  result.term.args.add(@data)
-  result.term.options = &*{"durability": durability, "return_changes": returnChanges, "non_atomic": nonAtomic}
+  ast(r, UPDATE, data)
+  result.setOptions(&*{"durability": durability, "return_changes": returnChanges, "non_atomic": nonAtomic})
 
 proc replace*(r: RqlQuery, data: MutableDatum, durability="hard", returnChanges=false, nonAtomic=false): RqlQuery =
   ## Replace documents in a table. Accepts a JSON document or a ReQL expression,
   ## and replaces the original document with the new one. The new document must have the same primary key as the original document.
-  ast(r, REPLACE)
-  result.term.args.add(@data)
-  result.term.options = &*{"durability": durability, "return_changes": returnChanges, "non_atomic": nonAtomic}
+  ast(r, REPLACE, data)
+  result.setOptions(&*{"durability": durability, "return_changes": returnChanges, "non_atomic": nonAtomic})
 
 proc delete*(r: RqlQuery, data: MutableDatum, durability="hard", returnChanges=false): RqlQuery =
   ## Delete one or more documents from a table.
-  ast(r, DELETE)
-  result.term.args.add(@data)
-  result.term.options = &*{"durability": durability, "return_changes": returnChanges}
+  ast(r, DELETE, data)
+  result.setOptions(&*{"durability": durability, "return_changes": returnChanges})
 
 proc sync*(r: RqlQuery, data: MutableDatum): RqlQuery =
   ## `sync` ensures that writes on a given table are written to permanent storage
-  ast(r, SYNC)
-  result.term.args.add(@data)
+  ast(r, SYNC, data)
 
 #--------------------
 # Selecting data
@@ -217,18 +231,15 @@ proc sync*(r: RqlQuery, data: MutableDatum): RqlQuery =
 
 proc db*(r: RethinkClient, db: string): RqlDatabase =
   ## Reference a database.
-  ast(r, DB)
-  result.term.args.add(@db)
+  ast(r, DB, db)
 
 proc table*[T: RethinkClient|RqlDatabase](r: T, t: string): RqlTable =
   ## Select all documents in a table
-  ast(r, TABLE)
-  result.term.args.add(@t)
+  ast(r, TABLE, t)
 
 proc get*[T: int|string](r: RqlTable, t: T): RqlQuery =
   ## Get a document by primary key
-  ast(r, GET)
-  result.term.args.add(@t)
+  ast(r, GET, t)
 
 proc getAll*[T: int|string](r: RqlTable, args: openArray[T], index = ""): RqlQuery =
   ## Get all documents where the given value matches the value of the requested index
@@ -242,30 +253,28 @@ proc getAll*[T: int|string](r: RqlTable, args: openArray[T], index = ""): RqlQue
   ##  r.table("posts").getAll(["nim", "lang"], "tags").run()
   ast(r, GET_ALL)
   for x in args:
-    result.term.args.add(@x)
+    result.addArg(@x)
 
   if index != "":
-    result.term.options = &*{"index": index}
+    result.setOptions(&*{"index": index})
 
 proc between*(r: RqlTable, lowerKey, upperKey: MutableDatum, index = "id", leftBound = "closed", rightBound = "open"): RqlQuery =
   ## Get all documents between two keys
-  ast(r, BETWEEN)
-  result.term.args.add(@lowerKey)
-  result.term.args.add(@upperKey)
-  result.term.options = &*{"index": index, "left_bound": leftBound, "right_bound": rightBound}
+  ast(r, BETWEEN, lowerKey, upperKey)
+  result.setOptions(&*{"index": index, "left_bound": leftBound, "right_bound": rightBound})
 
 proc filter*[T: MutableDatum|RqlQuery](r: RqlQuery, data: T, default = false): RqlQuery =
   ## Get all the documents for which the given predicate is true
   ast(r, FILTER)
   when data is MutableDatum:
-    result.term.args.add(@data)
+    result.addArg(@data)
   else:
     var f = r.makeFunc(data)
-    result.term.args.add(f.term)
+    result.addArg(f.term)
   if default:
-    result.term.options = &*{"default": true}
+    result.setOptions(&*{"default": true})
 
-  #TODO filter by expr
+  #TODO filter by anonymous functions
 
 #--------------------
 # Joins
@@ -278,18 +287,15 @@ proc filter*[T: MutableDatum|RqlQuery](r: RqlQuery, data: T, default = false): R
 
 proc args*(r: RethinkClient, args: MutableDatum): RqlQuery =
   ## `r.args` is a special term that’s used to splice an array of arguments into another term
-  ast(r, ARGS)
-  result.term.args.add(@args)
+  ast(r, ARGS, args)
 
 proc binary*(r: RethinkClient, data: BinaryData): RqlQuery =
   ## Encapsulate binary data within a query.
-  ast(r, BINARY)
-  result.term.args.add(@data)
+  ast(r, BINARY, data)
 
 proc js*(r: RethinkClient, js: string, timeout = 0): RqlQuery =
   ## Create a javascript expression.
-  ast(r, JAVASCRIPT)
-  result.term.args.add(@js)
+  ast(r, JAVASCRIPT, js)
 
 #--------------------
 # Document manipulation
@@ -299,8 +305,8 @@ proc row*(r: RethinkClient): RqlRow =
   ## Returns the currently visited document
   ##
   ## This proc must be called along with `[]` operator
-  ast(r, BRACKET)
-  result.term.args.add(r.makeVar().term)
+  let t = r.makeVar().term
+  ast(r, BRACKET, t)
   result.firstVar = true
 
 proc `[]`*(r: RqlRow, s: string): RqlRow =
@@ -311,12 +317,11 @@ proc `[]`*(r: RqlRow, s: string): RqlRow =
   ## .. code-block:: nim
   ##  r.row["age"]
   if r.firstVar:
-    r.term.args.add(@s)
+    r.addArg(@s)
     r.firstVar = false
     result = r
   else:
-    ast(r, BRACKET)
-    result.term.args.add(@s)
+    ast(r, BRACKET, s)
 
 #--------------------
 # Math and logic
@@ -324,33 +329,27 @@ proc `[]`*(r: RqlRow, s: string): RqlRow =
 
 proc `+`*[T](r: RqlQuery, b: T): RqlQuery =
   ## Sum two numbers, concatenate two strings, or concatenate 2 arrays
-  ast(r, ADD)
-  result.term.args.add(@b)
+  ast(r, ADD, db)
 
 proc `-`*[T](r: RqlQuery, b: T): RqlQuery =
   ## Subtract two numbers.
-  ast(r, SUB)
-  result.term.args.add(@b)
+  ast(r, SUB, b)
 
 proc `*`*[T](r: RqlQuery, b: T): RqlQuery =
   ## Multiply two numbers, or make a periodic array.
-  ast(r, MUL)
-  result.term.args.add(@b)
+  ast(r, MUL, b)
 
 proc `/`*[T](r: RqlQuery, b: T): RqlQuery =
   ## Divide two numbers.
-  ast(r, DIV)
-  result.term.args.add(@b)
+  ast(r, DIV, b)
 
 proc `%`*[T](r: RqlQuery, b: T): RqlQuery =
   ## Find the remainder when dividing two numbers.
-  ast(r, MOD)
-  result.term.args.add(@b)
+  ast(r, MOD, b)
 
 proc `and`*[T](r: RqlRow, b: T): expr =
   ## Compute the logical “and” of two or more values
-  ast(r, AND)
-  result.term.args.add(@b)
+  ast(r, AND, b)
 
 proc `&`*[T](r: RqlRow, e: T): expr =
   ## Shortcut for `and`
@@ -358,8 +357,7 @@ proc `&`*[T](r: RqlRow, e: T): expr =
 
 proc `or`*[T](r: RqlQuery, b: T): RqlQuery =
   ## Compute the logical “or” of two or more values.
-  ast(r, OR)
-  result.term.args.add(@b)
+  ast(r, OR, b)
 
 proc `|`*[T](r: RqlRow, e: T): expr =
   ## Shortcut for `or`
@@ -367,8 +365,8 @@ proc `|`*[T](r: RqlRow, e: T): expr =
 
 proc `eq`*[T](r: RqlRow, e: T): RqlQuery =
   ## Test if two values are equal.
-  ast(r, EQ)
-  result.term.args.add(r.expr(e).term)
+  let t = r.expr(e).term
+  ast(r, EQ, t)
 
 proc `==`*[T](r: RqlRow, e: T): expr =
   ## Shortcut for `eq`
@@ -376,8 +374,8 @@ proc `==`*[T](r: RqlRow, e: T): expr =
 
 proc `ne`*[T](r: RqlRow, e: T): RqlQuery =
   ## Test if two values are not equal.
-  ast(r, NE)
-  result.term.args.add(r.expr(e).term)
+  let t = r.expr(e).term
+  ast(r, NE, t)
 
 proc `!=`*[T](r: RqlRow, e: T): expr =
   ## Shortcut for `ne`
@@ -385,8 +383,8 @@ proc `!=`*[T](r: RqlRow, e: T): expr =
 
 proc `gt`*[T](r: RqlRow, e: T): RqlQuery =
   ## Test if the first value is greater than other.
-  ast(r, GT)
-  result.term.args.add(r.expr(e).term)
+  let t = r.expr(e).term
+  ast(r, GT, t)
 
 proc `>`*[T](r: RqlRow, e: T): expr =
   ## Shortcut for `gt`
@@ -394,8 +392,8 @@ proc `>`*[T](r: RqlRow, e: T): expr =
 
 proc `ge`*[T](r: RqlRow, e: T): RqlQuery =
   ## Test if the first value is greater than or equal to other.
-  ast(r, GE)
-  result.term.args.add(r.expr(e).term)
+  let t = r.expr(e).term
+  ast(r, GE, t)
 
 proc `>=`*[T](r: RqlRow, e: T): expr =
   ## Shortcut for `ge`
@@ -403,8 +401,8 @@ proc `>=`*[T](r: RqlRow, e: T): expr =
 
 proc `lt`*[T](r: RqlRow, e: T): RqlQuery =
   ## Test if the first value is less than other.
-  ast(r, LT)
-  result.term.args.add(r.expr(e).term)
+  let t = r.expr(e).term
+  ast(r, LT, t)
 
 proc `<`*[T](e: T, r: RqlRow): expr =
   ## Shortcut for `lt`
@@ -412,8 +410,8 @@ proc `<`*[T](e: T, r: RqlRow): expr =
 
 proc `le`*[T](r: RqlRow, e: T): RqlQuery =
   ## Test if the first value is less than or equal to other.
-  ast(r, LE)
-  result.term.args.add(r.expr(e).term)
+  let t = r.expr(e).term
+  ast(r, LE, t)
 
 proc `<=`*[T](e: T, r: RqlRow): expr =
   ## Shortcut for `le`
@@ -421,8 +419,8 @@ proc `<=`*[T](e: T, r: RqlRow): expr =
 
 proc `not`*[T](r: RqlRow, e: T): RqlQuery =
   ## Compute the logical inverse (not) of an expression.
-  ast(r, NOT)
-  result.term.args.add(r.expr(e).term)
+  let t = r.expr(e).term
+  ast(r, NOT, t)
 
 proc `~`*[T](r: RqlRow, e: T): expr =
   ## Shortcut for `not`
@@ -433,8 +431,8 @@ proc random*(r: RethinkClient, x = 0, y = 1, float = true): RqlQuery =
   ast(r, RANDOM)
 
   if x != 0:
-    result.term.args.add(@x)
+    result.addArg(@x)
   if x != 0 and y != 1:
-    result.term.args.add(@y)
+    result.addArg(@y)
   if float == true:
-    result.term.options = &*{"float": float}
+    result.setOptions(&*{"float": float})

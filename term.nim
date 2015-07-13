@@ -4,7 +4,7 @@ import datum
 
 import ql2
 
-type      
+type
   Term* = ref object of RootObj
     case tt*: TermType
     of DATUM:
@@ -30,7 +30,7 @@ proc `%`*(term: Term): JsonNode {.procvar.} =
     result = newJArray()
     result.add(newJInt(term.tt.ord))
     var j = newJArray()
-    for x in term.args:      
+    for x in term.args:
       j.add(%x)
     result.add(j)
     if not term.options.isNil:
@@ -38,6 +38,9 @@ proc `%`*(term: Term): JsonNode {.procvar.} =
 
 proc `$`*(t: Term): string =
   result = $(%t)
+
+proc `@`*(t: Term): Term {.inline.} =
+  result = t
 
 proc `@`*(s: string): Term =
   result = newTerm(DATUM)
@@ -57,8 +60,8 @@ proc `@`*(a: openArray[MutableDatum]): Term =
 
 proc `@`*(a: seq[MutableDatum]): Term =
   result = newTerm(DATUM)
-  result.datum = &a  
-  
+  result.datum = &a
+
 proc `@`*(o: openArray[tuple[key: string, val: MutableDatum]]): Term =
   result = newTerm(DATUM)
   result.datum = &o
