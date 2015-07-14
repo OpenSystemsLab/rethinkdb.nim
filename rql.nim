@@ -280,7 +280,10 @@ proc filter*[T: MutableDatum|RqlQuery](r: RqlQuery, data: T, default = false): R
 # Joins
 #--------------------
 
-#proc innerJoin*(r: RqlQuery,
+proc innerJoin*(r, o, data: RqlQuery): RqlQuery =
+  ## Returns an inner join of two sequences
+  ast(r, INNER_JOIN)
+
 #--------------------
 # Transformations
 #--------------------
