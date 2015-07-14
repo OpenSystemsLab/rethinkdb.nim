@@ -28,6 +28,8 @@ type
   RqlRow* = ref object of RqlQuery
     firstVar: bool # indicate this is the first selector
 
+  RqlFunction* = ref object of RqlQuery
+
 proc run*(r: RqlQuery): Future[JsonNode] {.async.} =
   ## Run a query on a connection, returning a `JsonNode` contains single JSON result or an JsonArray, depending on the query.
   if not r.conn.isConnected:
@@ -103,6 +105,23 @@ proc makeObj*[T](r: RethinkClient, o: T): RqlQuery {.inline.} =
 proc makeVar*(r: RethinkClient): RqlQuery {.inline.} =
   ast(r, IMPLICIT_VAR)
 
+proc hasImplicitVar*[T: RqlQuery|Term](t: T): bool =
+  result = false
+  when t is RqlQuery:
+    result = t.term.hasImplicitVar
+  else:
+    if t.tt == IMPLICIT_VAR:
+      result = true
+    else:
+      for x in t.args:
+        if x.hasImplicitVar:
+          result true
+          break
+
+proc funcWrap*(): RqlQuery =
+  discard
+
+
 proc makeFunc*[T: RethinkClient|RqlQuery](r: T, f: RqlQuery): RqlQuery =
   ## Call an anonymous function using return values from other ReQL commands or queries as arguments.
   ##
@@ -115,8 +134,8 @@ proc makeFunc*[T: RethinkClient|RqlQuery](r: T, f: RqlQuery): RqlQuery =
   result.conn = r.conn
   result.term = newTerm(FUNC)
   #TODO args count
-  result.term.args.add(makeArray(varId))
-  result.term.args.add(f.term)
+  result.addArg(makeArray(varId))
+  result.addArg(f.term)
 
 proc datumTerm[T, U](r: T, t: U): RqlQuery =
   new(result)
