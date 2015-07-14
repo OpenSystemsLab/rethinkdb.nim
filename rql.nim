@@ -82,6 +82,9 @@ macro ast(n: varargs[expr]): stmt =
       result.add(newCall("addArg", ident("result"), prefix(n[i], "@")))
 
 
+proc `@`*(r: RqlQuery): Term {.inline.} =
+  result = r.term
+
 proc addArg*(r: RqlQuery, t: Term) {.noSideEffect, inline.} =
   if not t.isNil:
     r.term.args.add(t)
@@ -99,7 +102,6 @@ proc makeObj*[T](r: RethinkClient, o: T): RqlQuery {.inline.} =
 
 proc makeVar*(r: RethinkClient): RqlQuery {.inline.} =
   ast(r, IMPLICIT_VAR)
-
 
 proc makeFunc*[T: RethinkClient|RqlQuery](r: T, f: RqlQuery): RqlQuery =
   ## Call an anonymous function using return values from other ReQL commands or queries as arguments.
