@@ -45,6 +45,7 @@ type
     DATUM = 1
     MAKE_ARRAY = 2
     MAKE_OBJ = 3
+    VAR = 10
     JAVASCRIPT = 11
     ERROR = 12
     IMPLICIT_VAR = 13

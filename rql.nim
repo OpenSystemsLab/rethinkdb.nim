@@ -6,6 +6,7 @@ import strtabs
 import strutils
 import json
 import macros
+import future
 
 import ql2
 import term
@@ -29,6 +30,9 @@ type
     firstVar: bool # indicate this is the first selector
 
   RqlFunction* = ref object of RqlQuery
+  RqlVariable* = ref object of RqlQuery
+
+
 
 proc run*(r: RqlQuery): Future[JsonNode] {.async.} =
   ## Run a query on a connection, returning a `JsonNode` contains single JSON result or an JsonArray, depending on the query.
@@ -102,8 +106,9 @@ proc makeObj*[T](r: RethinkClient, o: T): RqlQuery {.inline.} =
   result = newTerm(MAKE_OBJ)
   result.args.add(@o)
 
-proc makeVar*(r: RethinkClient): RqlQuery {.inline.} =
-  ast(r, IMPLICIT_VAR)
+proc makeVar(i: int): Term {.inline.} =
+  result = newTerm(VAR)
+  result.args.add(@i)
 
 proc hasImplicitVar*[T: RqlQuery|Term](t: T): bool =
   result = false
@@ -121,6 +126,34 @@ proc hasImplicitVar*[T: RqlQuery|Term](t: T): bool =
 proc funcWrap*(): RqlQuery =
   discard
 
+proc map*[T, U, V](r: T, f: proc(x: U): V): RqlQuery =
+  ast(r, MAP)
+  echo "================="
+
+  var varId = 1
+
+  var f1 = newTerm(FUNC)
+
+  var v1 = makeVar(varId)
+
+  f1.args.add(makeArray(varId))
+
+  var b1 = newTerm(BRACKET)
+  b1.args.add(v1)
+
+  let res = f(v1)
+  when res is Term:
+    b1.args.add(res)
+  when res is RqlQuery:
+    b1.args.add(res.term)
+  when res is MutableDatum:
+    b1.args.add(@res)
+
+  f1.args.add(b1)
+
+  result.addArg(f1)
+
+  #echo(%v2.term)
 
 proc makeFunc*[T: RethinkClient|RqlQuery](r: T, f: RqlQuery): RqlQuery =
   ## Call an anonymous function using return values from other ReQL commands or queries as arguments.
@@ -325,27 +358,30 @@ proc js*(r: RethinkClient, js: string, timeout = 0): RqlQuery =
 # Document manipulation
 #--------------------
 
-proc row*(r: RethinkClient): RqlRow =
+proc row*[T: RethinkClient|RqlQuery](r: T): RqlRow =
   ## Returns the currently visited document
   ##
   ## This proc must be called along with `[]` operator
-  let t = r.makeVar().term
+  let t = newTerm(IMPLICIT_VAR)
   ast(r, BRACKET, t)
   result.firstVar = true
 
-proc `[]`*(r: RqlRow, s: string): RqlRow =
+proc `[]`*[T, U](r: T, s: string): U =
   ## Operator for create row's fields chain
   ##
   ## Example:
   ##
   ## .. code-block:: nim
   ##  r.row["age"]
-  if r.firstVar:
-    r.addArg(@s)
-    r.firstVar = false
-    result = r
+  when r is RqlRow:
+    if r.firstVar:
+      r.addArg(@s)
+      r.firstVar = false
+      result = r
+    else:
+      ast(r, BRACKET, s)
   else:
-    ast(r, BRACKET, s)
+    return &s
 
 #--------------------
 # Math and logic
@@ -430,7 +466,7 @@ proc `lt`*[T](r: RqlRow, e: T): RqlQuery =
 
 proc `<`*[T](e: T, r: RqlRow): expr =
   ## Shortcut for `lt`
-  r.lt(e)
+  r.gt(e)
 
 proc `le`*[T](r: RqlRow, e: T): RqlQuery =
   ## Test if the first value is less than or equal to other.
@@ -439,7 +475,7 @@ proc `le`*[T](r: RqlRow, e: T): RqlQuery =
 
 proc `<=`*[T](e: T, r: RqlRow): expr =
   ## Shortcut for `le`
-  r.le(e)
+  r.ge(e)
 
 proc `not`*[T](r: RqlRow, e: T): RqlQuery =
   ## Compute the logical inverse (not) of an expression.
