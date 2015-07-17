@@ -2,9 +2,9 @@
 # Math and logic
 #--------------------
 
-proc `+`*[T](r: RqlQuery, b: T): RqlQuery =
+proc `+`*[T, U](r: T, b: U): RqlQuery =
   ## Sum two numbers, concatenate two strings, or concatenate 2 arrays
-  ast(r, ADD, db)
+  ast(r, ADD, b)
 
 proc `-`*[T](r: RqlQuery, b: T): RqlQuery =
   ## Subtract two numbers.

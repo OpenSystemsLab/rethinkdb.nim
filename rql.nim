@@ -5,7 +5,7 @@ import asyncdispatch
 import strtabs
 import strutils
 import json
-
+import typetraits
 
 import ql2
 import term
@@ -30,6 +30,7 @@ type
 
   RqlFunction* = ref object of RqlQuery
   RqlVariable* = ref object of RqlQuery
+    id: int
 
 
 
@@ -52,6 +53,8 @@ proc run*(r: RqlQuery): Future[JsonNode] {.async.} =
       await r.conn.continueQuery(response.token)
       response = await r.conn.readResponse()
       result.add(response.data)
+    if result.elems.len == 1:
+      return result[0]
   of CLIENT_ERROR:
     raise newException(RqlClientError, $response.data[0])
   of COMPILE_ERROR:
@@ -61,8 +64,8 @@ proc run*(r: RqlQuery): Future[JsonNode] {.async.} =
   else:
     raise newException(RqlDriverError, "Unknow response type $#" % [$response.kind])
 
-#proc `@`*(r: RqlQuery): Term {.inline.} =
-#  result = r.term
+proc `@`*(r: RqlQuery): Term {.inline.} =
+  result = r.term
 
 proc addArg*(r: RqlQuery, t: Term) {.noSideEffect, inline.} =
   if not t.isNil:
@@ -96,12 +99,11 @@ proc hasImplicitVar*[T: RqlQuery|Term](t: T): bool =
           result true
           break
 
-proc funcWrap[T, U](f: proc(x: T): U): Term =
+proc funcWrap[T](f: proc(x: RqlVariable): T): Term =
   ## Wraper for anonymous function
   var varId = 1
 
   result = newTerm(FUNC)
-
   var v1 = makeVar(varId)
 
   result.args.add(makeArray(varId))
@@ -109,17 +111,30 @@ proc funcWrap[T, U](f: proc(x: T): U): Term =
   var b1 = newTerm(BRACKET)
   b1.args.add(v1)
 
-  let res = f(v1)
-  echo(%res)
-  when res is Term:
-    b1.args.add(res)
+  var arg1: RqlVariable
+  new(arg1)
+  arg1.id = varId
+
+  let res = f(arg1)
+
+  echo "========================="
+  echo name(type(res))
+  echo "========================="
+
+  when res is RqlVariable:   # the anonymous function return the current row
+    result.args.add(v1)      # lambda x: x
+  #when res is Term:
+  #  b1.args.add(res)
   when res is RqlQuery:
-    b1.args.add(res.term)
+    result.args.add(res.term)
+  #when res is RqlQuery:
+  #  b1.args.add(res.term)
+   # result.args.add(b1)
   when res is MutableDatum:
     b1.args.add(@res)
-
-  result.args.add(b1)
-
+    result.args.add(b1)
+  else:
+    discard
 
 proc makeFunc*[T: RethinkClient|RqlQuery](r: T, f: RqlQuery): RqlQuery =
   ## Call an anonymous function using return values from other ReQL commands or queries as arguments.
@@ -156,8 +171,10 @@ proc `[]`*[T, U](r: T, s: string): U =
       result = r
     else:
       ast(r, BRACKET, s)
+  #when r is RqlVariable:
+  #  result = r.row[s]
   else:
-    return &s
+    result = r.row[s]
 
 
 include queries/db
