@@ -2,7 +2,7 @@
 # Math and logic
 #--------------------
 
-proc `+`*[T, U](r: T, b: U): RqlQuery =
+proc `+`*[T](r: RqlQuery, b: T): RqlQuery =
   ## Sum two numbers, concatenate two strings, or concatenate 2 arrays
   ast(r, ADD, b)
 
