@@ -1,2 +1,3 @@
 nimcache/
-rethinkdb
+rethinkdb_data
+tests/test.nim

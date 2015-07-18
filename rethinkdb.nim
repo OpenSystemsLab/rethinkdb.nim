@@ -1,9 +1,9 @@
 import datum
-import term
+import types
 import connection
 import rql
 
 export datum
-export term
+export types
 export connection
 export rql

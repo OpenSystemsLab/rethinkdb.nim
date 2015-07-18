@@ -4,27 +4,27 @@
 
 proc `+`*[T](r: RqlQuery, b: T): RqlQuery =
   ## Sum two numbers, concatenate two strings, or concatenate 2 arrays
-  ast(r, ADD, b)
+  newQueryAst(ADD, r, b)
 
 proc `-`*[T](r: RqlQuery, b: T): RqlQuery =
   ## Subtract two numbers.
-  ast(r, SUB, b)
+  newQueryAst(SUB, r, b)
 
 proc `*`*[T](r: RqlQuery, b: T): RqlQuery =
   ## Multiply two numbers, or make a periodic array.
-  ast(r, MUL, b)
+  newQueryAst(MUL, r, b)
 
 proc `/`*[T](r: RqlQuery, b: T): RqlQuery =
   ## Divide two numbers.
-  ast(r, DIV, b)
+  newQueryAst(DIV, r, b)
 
 proc `%`*[T](r: RqlQuery, b: T): RqlQuery =
   ## Find the remainder when dividing two numbers.
-  ast(r, MOD, b)
+  newQueryAst(MOD, r, b)
 
 proc `and`*[T](r: RqlRow, b: T): expr =
   ## Compute the logical “and” of two or more values
-  ast(r, AND, b)
+  newQueryAst(AND, r, b)
 
 proc `&`*[T](r: RqlRow, e: T): expr =
   ## Shortcut for `and`
@@ -32,7 +32,7 @@ proc `&`*[T](r: RqlRow, e: T): expr =
 
 proc `or`*[T](r: RqlQuery, b: T): RqlQuery =
   ## Compute the logical “or” of two or more values.
-  ast(r, OR, b)
+  newQueryAst(OR, r, b)
 
 proc `|`*[T](r: RqlRow, e: T): expr =
   ## Shortcut for `or`
@@ -41,7 +41,7 @@ proc `|`*[T](r: RqlRow, e: T): expr =
 proc `eq`*[T](r: RqlRow, e: T): RqlQuery =
   ## Test if two values are equal.
   let t = r.expr(e).term
-  ast(r, EQ, t)
+  newQueryAst(EQ, r, t)
 
 proc `==`*[T](r: RqlRow, e: T): expr =
   ## Shortcut for `eq`
@@ -50,7 +50,7 @@ proc `==`*[T](r: RqlRow, e: T): expr =
 proc `ne`*[T](r: RqlRow, e: T): RqlQuery =
   ## Test if two values are not equal.
   let t = r.expr(e).term
-  ast(r, NE, t)
+  newQueryAst(NE, r, t)
 
 proc `!=`*[T](r: RqlRow, e: T): expr =
   ## Shortcut for `ne`
@@ -59,7 +59,7 @@ proc `!=`*[T](r: RqlRow, e: T): expr =
 proc `gt`*[T](r: RqlRow, e: T): RqlQuery =
   ## Test if the first value is greater than other.
   let t = r.expr(e).term
-  ast(r, GT, t)
+  newQueryAst(GT, r, t)
 
 proc `>`*[T](r: RqlRow, e: T): expr =
   ## Shortcut for `gt`
@@ -67,8 +67,8 @@ proc `>`*[T](r: RqlRow, e: T): expr =
 
 proc `ge`*[T](r: RqlRow, e: T): RqlQuery =
   ## Test if the first value is greater than or equal to other.
-  let t = r.expr(e).term
-  ast(r, GE, t)
+  let t = r.expr(e)
+  newQueryAst(GE, r, t)
 
 proc `>=`*[T](r: RqlRow, e: T): expr =
   ## Shortcut for `ge`
@@ -76,8 +76,8 @@ proc `>=`*[T](r: RqlRow, e: T): expr =
 
 proc `lt`*[T](r: RqlRow, e: T): RqlQuery =
   ## Test if the first value is less than other.
-  let t = r.expr(e).term
-  ast(r, LT, t)
+  let t = r.expr(e)
+  newQueryAst(LT, r, t)
 
 proc `<`*[T](e: T, r: RqlRow): expr =
   ## Shortcut for `lt`
@@ -85,8 +85,8 @@ proc `<`*[T](e: T, r: RqlRow): expr =
 
 proc `le`*[T](r: RqlRow, e: T): RqlQuery =
   ## Test if the first value is less than or equal to other.
-  let t = r.expr(e).term
-  ast(r, LE, t)
+  let t = r.expr(e)
+  newQueryAst(LE, r, t)
 
 proc `<=`*[T](e: T, r: RqlRow): expr =
   ## Shortcut for `le`
@@ -94,8 +94,8 @@ proc `<=`*[T](e: T, r: RqlRow): expr =
 
 proc `not`*[T](r: RqlRow, e: T): RqlQuery =
   ## Compute the logical inverse (not) of an expression.
-  let t = r.expr(e).term
-  ast(r, NOT, t)
+  let t = r.expr(e)
+  newQueryAst(NOT, r, t)
 
 proc `~`*[T](r: RqlRow, e: T): expr =
   ## Shortcut for `not`
@@ -103,11 +103,11 @@ proc `~`*[T](r: RqlRow, e: T): expr =
 
 proc random*(r: RethinkClient, x = 0, y = 1, isFloat = false): RqlQuery =
   ## Generate a random number between given (or implied) bounds.
-  ast(r, RANDOM)
+  newQueryAst(RANDOM)
 
   if x != 0:
-    result.addArg(@x)
+    result.addArg(newDatum(x))
   if x != 0 and y != 1:
-    result.addArg(@y)
+    result.addArg(newDatum(y))
   if isFloat:
-    result.setOptions(&*{"float": isFloat})
+    result.setOption("float", isFloat)

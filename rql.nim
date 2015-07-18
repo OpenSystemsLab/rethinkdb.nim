@@ -6,18 +6,16 @@ import strtabs
 import strutils
 import json
 import typetraits
+import tables
 
 import ql2
-import term
+#import term
 import datum
 import connection
 import utils
+import types
 
 type
-  RqlQuery* = ref object of RootObj
-    conn: RethinkClient
-    term: Term
-
   RqlDatabase* = ref object of RqlQuery
     db: string
 
@@ -28,18 +26,25 @@ type
   RqlRow* = ref object of RqlQuery
     firstVar: bool # indicate this is the first selector
 
-  RqlFunction* = ref object of RqlQuery
-  RqlVariable* = ref object of RqlQuery
-    id: int
+var
+  defaultClient: RethinkClient
 
+proc repl*(r: RethinkClient) =
+  defaultClient = r
 
-
-proc run*(r: RqlQuery): Future[JsonNode] {.async.} =
+proc run*(r: RqlQuery, c: RethinkClient = nil): Future[JsonNode] {.async.} =
   ## Run a query on a connection, returning a `JsonNode` contains single JSON result or an JsonArray, depending on the query.
-  if not r.conn.isConnected:
-    await r.conn.connect()
-  await r.conn.startQuery(r.term)
-  var response = await r.conn.readResponse()
+  var c = c
+  if c.isNil:
+    c = defaultClient
+  if c.isNil:
+    raise newException(RqlClientError, "r.run() must be given a connection to run on.")
+
+  if not c.isConnected:
+    raise newException(RqlClientError, "Connection is closed.")
+
+  await c.startQuery(r)
+  var response = await c.readResponse()
 
   case response.kind
   of SUCCESS_ATOM:
@@ -50,8 +55,8 @@ proc run*(r: RqlQuery): Future[JsonNode] {.async.} =
     result = newJArray()
     result.add(response.data)
     while response.kind == SUCCESS_PARTIAL:
-      await r.conn.continueQuery(response.token)
-      response = await r.conn.readResponse()
+      await c.continueQuery(response.token)
+      response = await c.readResponse()
       result.add(response.data)
     if result.elems.len == 1:
       return result[0]
@@ -64,79 +69,53 @@ proc run*(r: RqlQuery): Future[JsonNode] {.async.} =
   else:
     raise newException(RqlDriverError, "Unknow response type $#" % [$response.kind])
 
-proc `@`*(r: RqlQuery): Term {.inline.} =
-  result = r.term
+#proc `@`*(r: RqlQuery): Term {.inline.} =
+#  result = r.term
 
-proc addArg*(r: RqlQuery, t: Term) {.noSideEffect, inline.} =
-  if not t.isNil:
-    r.term.args.add(t)
-
-proc setOptions*(r: RqlQuery, m: MutableDatum) {.noSideEffect, inline.} =
-  r.term.options = m
-
-proc makeArray*[T](a: T): Term {.inline.} =
-  result = newTerm(MAKE_ARRAY)
-  result.args.add(@a)
-
-proc makeObj*[T](r: RethinkClient, o: T): RqlQuery {.inline.} =
-  result = newTerm(MAKE_OBJ)
-  result.args.add(@o)
-
-proc makeVar(i: int): Term {.inline.} =
-  result = newTerm(VAR)
-  result.args.add(@i)
-
-proc hasImplicitVar*[T: RqlQuery|Term](t: T): bool =
-  result = false
+proc addArg*[T](r: RqlQuery, t: T) {.noSideEffect.} =
   when t is RqlQuery:
-    result = t.term.hasImplicitVar
+    r.args.add(t)
   else:
-    if t.tt == IMPLICIT_VAR:
-      result = true
-    else:
-      for x in t.args:
-        if x.hasImplicitVar:
-          result true
-          break
+    r.args.add(newDatum(t))
 
-proc funcWrap[T](f: proc(x: RqlVariable): T): Term =
+proc setOption*(r: RqlQuery, k: string, v: RqlQuery) {.noSideEffect, inline.} =
+  r.optargs[k] = v
+
+proc setOption*[T](r: RqlQuery, k: string, v: T) {.noSideEffect, inline.} =
+  r.optargs[k] = newDatum(v)
+
+
+
+proc makeArray*[T](t: T): RqlQuery =
+  newQueryAst(MAKE_ARRAY)
+  result.addArg(newDatum(t))
+
+proc makeVar(i: int): RqlQuery =
+  newQueryAst(VAR)
+  result.addArg(newDatum(i))
+
+proc funcWrap[T](f: proc(x: RqlQuery): T): RqlQuery =
   ## Wraper for anonymous function
   var varId = 1
-
-  result = newTerm(FUNC)
   var v1 = makeVar(varId)
+  newQueryAst(FUNC)
 
-  result.args.add(makeArray(varId))
+  result.addArg(makeArray(varId))
 
-  var b1 = newTerm(BRACKET)
-  b1.args.add(v1)
+  let res = f(v1)
 
-  var arg1: RqlVariable
-  new(arg1)
-  arg1.id = varId
-
-  let res = f(arg1)
-
-  echo "========================="
-  echo name(type(res))
-  echo "========================="
-
-  when res is RqlVariable:   # the anonymous function return the current row
-    result.args.add(v1)      # lambda x: x
-  #when res is Term:
-  #  b1.args.add(res)
   when res is RqlQuery:
-    result.args.add(res.term)
+    result.addArg(res)
   #when res is RqlQuery:
   #  b1.args.add(res.term)
    # result.args.add(b1)
-  when res is MutableDatum:
-    b1.args.add(@res)
-    result.args.add(b1)
+  #when res is MutableDatum:
+  #  b1.args.add(@res)
+  #  result.args.add(b1)
   else:
     discard
 
-proc makeFunc*[T: RethinkClient|RqlQuery](r: T, f: RqlQuery): RqlQuery =
+proc makeFunc*[T](r: T, f: RqlQuery): RqlQuery =
   ## Call an anonymous function using return values from other ReQL commands or queries as arguments.
   ##
   ## renamed from `do` function to avoid keyword conflict
@@ -144,18 +123,10 @@ proc makeFunc*[T: RethinkClient|RqlQuery](r: T, f: RqlQuery): RqlQuery =
 
   varId.inc
 
-  new(result)
-  result.conn = r.conn
-  result.term = newTerm(FUNC)
+  result = newQuery(FUNC)
   #TODO args count
   result.addArg(makeArray(varId))
-  result.addArg(f.term)
-
-proc datumTerm[T, U](r: T, t: U): RqlQuery =
-  new(result)
-  result.conn = r.conn
-  result.term = t
-
+  result.addArg(f)
 
 proc `[]`*[T, U](r: T, s: string): U =
   ## Operator for create row's fields chain
@@ -166,11 +137,11 @@ proc `[]`*[T, U](r: T, s: string): U =
   ##  r.row["age"]
   when r is RqlRow:
     if r.firstVar:
-      r.addArg(@s)
+      r.addArg(newDatum(s))
       r.firstVar = false
       result = r
     else:
-      ast(r, BRACKET, s)
+      newQueryAst(BRACKET, r, s)
   #when r is RqlVariable:
   #  result = r.row[s]
   else:

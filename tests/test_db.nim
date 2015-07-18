@@ -12,12 +12,13 @@ testSuite DatabaseManipulationTests:
 
   method setup()=
     self.r = newRethinkClient()
+    self.r.connect().repl()
     randomize()
     self.db = "test_db_" & $random(9999)
 
 
   method tearDown()=
-    self.r.disconnect()
+    self.r.close()
 
   method testCreateDatabase()=
     let res = waitFor self.r.dbCreate(self.db).run()

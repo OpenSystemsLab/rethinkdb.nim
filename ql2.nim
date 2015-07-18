@@ -50,7 +50,7 @@ type
     ERROR = 12
     IMPLICIT_VAR = 13
     DB = 14
-    TABLE = 15
+    TABLE_R = 15
     GET   = 16
     EQ = 17
     NE  = 18

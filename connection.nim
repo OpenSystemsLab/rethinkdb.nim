@@ -7,30 +7,27 @@ import struct
 import tables
 
 import ql2
-import term
+import types
+import utils
+import datum
 
 const
   BUFFER_SIZE: int = 1024
 
 type
-  RethinkClientBase = object of RootObj
+  RethinkClient* = ref object of RootObj
     address: string
     port: Port
     auth: string
-    options: TableRef[string, Term]
+    options: TableRef[string, RqlQuery]
     sock: AsyncFD
     sockConnected: bool
     queryToken: uint64
-
-    conn*: RethinkClient
-    term*: Term
 
   RqlDriverError* = object of SystemError
   RqlClientError* = object of SystemError
   RqlCompileError* = object of SystemError
   RqlRuntimeError* = object of SystemError
-
-  RethinkClient* = ref RethinkClientBase
 
   Response* = ref object of RootObj
     kind*: ResponseType
@@ -41,8 +38,8 @@ type
 
   Query* = ref object of RootObj
     kind*: QueryType
-    term*: Term
-    options*: TableRef[string, Term]
+    term*: RqlQuery
+    options*: TableRef[string, RqlQuery]
 
 var
   L = newConsoleLogger()
@@ -52,10 +49,10 @@ proc `$`*(q: Query): string =
   j.add(newJInt(q.kind.ord))
 
   if q.kind == START:
-    j.add(%q.term)
+    j.add(q.term.toJson)
     var opts = newJObject()
     for k, v in q.options.pairs():
-        opts.add(k, %v)
+        opts.add(k, v.toJson)
     j.add(opts)
   result = $j
 
@@ -84,14 +81,16 @@ proc nextToken(r: RethinkClient): uint64 =
   r.queryToken.inc()
   result = r.queryToken
 
-proc addOption*(r: RethinkClient, k: string, v: Term) =
+proc addOption*(r: RethinkClient, k: string, v: RqlQuery) =
   ## Set a global option
   r.options[k] = v
 
-proc use*(r: RethinkClient, db: string) =
+proc use*(r: RethinkClient, s: string) =
   ## Change the default database on this connection.
-  var term = newTerm(DB)
-  term.args.add(@db)
+  var term: RqlQuery
+  new(term)
+  term.tt = DB
+  term.args = @[newDatum(s)]
   r.addOption("db", term)
 
 proc newRethinkClient*(address = "127.0.0.1", port = Port(28015), auth = "", db = ""): RethinkClient =
@@ -102,12 +101,10 @@ proc newRethinkClient*(address = "127.0.0.1", port = Port(28015), auth = "", db 
   result.address = address
   result.port = port
   result.auth = auth
-  result.options = newTable[string, Term]()
+  result.options = newTable[string, RqlQuery]()
   result.sock = newAsyncRawSocket()
   result.sockConnected = false
   result.queryToken = 0
-
-  result.conn = result
 
   if not db.isNil and db != "":
     result.use(db)
@@ -126,10 +123,11 @@ proc handshake(r: RethinkClient) {.async.} =
     raise newException(RqlDriverError, data)
   L.log(lvlDebug, "Handshake success...")
 
-proc disconnect*(r: RethinkClient) =
+proc close*(r: RethinkClient) =
   ## Close an open connection
   r.sock.closeSocket()
   r.sockConnected = false
+  L.log(lvlDebug, "Disconnected from server...")
 
 proc runQuery(r: RethinkClient, q: Query, token: uint64 = 0) {.async.} =
   q.options = r.options
@@ -145,12 +143,12 @@ proc runQuery(r: RethinkClient, q: Query, token: uint64 = 0) {.async.} =
   let data = newStruct(">q<i$#s" % $termLen).add(token).add(termLen).add(term).pack()
   await r.sock.send(data)
 
-proc startQuery*(r: RethinkClient, term: Term) {.async.} =
+proc startQuery*(r: RethinkClient, t: RqlQuery) {.async.} =
   ## Send START query
   var q: Query
   new(q)
   q.kind = START
-  q.term = term
+  q.term = t
   await r.runQuery(q)
 
 proc continueQuery*(r: RethinkClient, token: uint64 = 0) {.async.} =
@@ -164,7 +162,7 @@ proc continueQuery*(r: RethinkClient, token: uint64 = 0) {.async.} =
 proc readResponse*(r: RethinkClient): Future[Response] {.async.} =
   let data = await r.sock.recv(12)
   if data == "":
-    r.disconnect()
+    r.close()
 
   let header = unpack(">Q<i", data)
   let token = header[0].getUQuad
@@ -177,15 +175,16 @@ proc readResponse*(r: RethinkClient): Future[Response] {.async.} =
 proc isConnected*(r: RethinkClient): bool {.noSideEffect, inline.} =
   r.sockConnected
 
-proc connect*(r: RethinkClient) {.async.} =
+proc connect*(r: RethinkClient): RethinkClient =
   ## Create a new connection to the database server
   if not r.isConnected:
     L.log(lvlDebug, "Connecting to server at $#:$#..." % [r.address, $r.port])
-    await r.sock.connect(r.address, r.port)
+    waitFor r.sock.connect(r.address, r.port)
     r.sockConnected = true
-    await r.handshake()
+    waitFor r.handshake()
+  result = r
 
-proc reconnect*(r: RethinkClient) {.async.} =
+proc reconnect*(r: RethinkClient): RethinkClient =
   ## Close and reopen a connection
-  r.disconnect()
-  await r.connect()
+  r.close()
+  result = r.connect()
