@@ -34,6 +34,10 @@ testSuite LambdasTests:
     self.r.close()
 
   method testMap()=
+    let res = waitFor self.r.expr(&*[1, 2, 3, 4, 5]).map((val: RqlQuery) => val * val).run()
+    self.check(res == %*[1, 4, 9, 16, 25])
+
+  method testMapField()=
     let ages = waitFor self.r.table(self.table).map((x: RqlQuery) => x["age"]).run()
     self.check(ages.elems.len == 3)
     self.check(ages[0].num.int in @[30, 23, 25])
