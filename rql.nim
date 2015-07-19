@@ -9,7 +9,6 @@ import typetraits
 import tables
 
 import ql2
-#import term
 import datum
 import connection
 import utils
@@ -96,24 +95,20 @@ proc makeVar(i: int): RqlQuery =
 
 proc funcWrap[T](f: proc(x: RqlQuery): T): RqlQuery =
   ## Wraper for anonymous function
-  var varId = 1
-  var v1 = makeVar(varId)
   newQueryAst(FUNC)
 
-  result.addArg(makeArray(varId))
+  let v1 = makeVar(1)
+  result.addArg(makeArray(1))
+  result.addArg(f(v1))
 
-  let res = f(v1)
+proc funcWrap[T](f: proc(x: RqlQuery, y: RqlQuery): T): RqlQuery =
+  newQueryAst(FUNC)
 
-  when res is RqlQuery:
-    result.addArg(res)
-  #when res is RqlQuery:
-  #  b1.args.add(res.term)
-   # result.args.add(b1)
-  #when res is MutableDatum:
-  #  b1.args.add(@res)
-  #  result.args.add(b1)
-  else:
-    discard
+  let v1 = makeVar(1)
+  let v2 = makeVar(2)
+
+  result.addArg(&*[1, 2])
+  result.addArg(f(v1, v2))
 
 proc makeFunc*[T](r: T, f: RqlQuery): RqlQuery =
   ## Call an anonymous function using return values from other ReQL commands or queries as arguments.

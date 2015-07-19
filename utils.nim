@@ -32,13 +32,13 @@ macro newQueryAst*(n: varargs[expr]): stmt =
   bracket.add(ident("string"))
   bracket.add(ident("RqlQuery"))
 
-  #result.add(
-  #  newAssignment(
-  #    newDotExpr(ident("result"), ident("optargs")),
-  #    newCall(bracket)
-  #  )
-  #)
-  result.add(newCall("new", newDotExpr(ident("result"), ident("optargs"))))
+  result.add(
+    newAssignment(
+      newDotExpr(ident("result"), ident("optargs")),
+      newCall(bracket)
+    )
+  )
+
   if n.len > 1:
     for i in 1..n.len-1:
       result.add(newCall("addArg", ident("result"), n[i]))

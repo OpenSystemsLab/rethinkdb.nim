@@ -1,7 +1,7 @@
 #--------------------
 # Transformations
 #--------------------
-proc map*[T, U, V](r: T, f: proc(x: U): V): RqlQuery =
+proc map*[T, U](r: T, f: proc(x: RqlQuery): U): RqlQuery =
   ## Transform each element of one or more sequences by applying a mapping function to them
   newQueryAst(MAP, r)
 

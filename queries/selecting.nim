@@ -6,12 +6,13 @@ proc db*(r: RethinkClient, db: string): RqlDatabase =
   ## Reference a database.
   newQueryAst(DB, db)
 
-proc table*[T: RethinkClient|RqlDatabase](r: T, t: string): RqlTable =
+proc table*(r: RethinkClient, t: string): RqlTable =
   ## Select all documents in a table
-  when r is RethinkClient:
-    newQueryAst(TABLE_R, t)
-  else:
-    newQueryAst(TABLE_R, r, t)
+  newQueryAst(TABLE_R, t)
+
+proc table*(r: RqlQuery, t: string): RqlTable =
+  ## Select all documents in a table
+  newQueryAst(TABLE_R, r, t)
 
 proc get*[T: int|string](r: RqlTable, t: T): RqlQuery =
   ## Get a document by primary key

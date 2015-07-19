@@ -40,7 +40,7 @@ proc `|`*[T](r: RqlRow, e: T): expr =
 
 proc `eq`*[T](r: RqlRow, e: T): RqlQuery =
   ## Test if two values are equal.
-  let t = r.expr(e).term
+  let t = r.expr(e)
   newQueryAst(EQ, r, t)
 
 proc `==`*[T](r: RqlRow, e: T): expr =
@@ -49,7 +49,7 @@ proc `==`*[T](r: RqlRow, e: T): expr =
 
 proc `ne`*[T](r: RqlRow, e: T): RqlQuery =
   ## Test if two values are not equal.
-  let t = r.expr(e).term
+  let t = r.expr(e)
   newQueryAst(NE, r, t)
 
 proc `!=`*[T](r: RqlRow, e: T): expr =
@@ -58,7 +58,7 @@ proc `!=`*[T](r: RqlRow, e: T): expr =
 
 proc `gt`*[T](r: RqlRow, e: T): RqlQuery =
   ## Test if the first value is greater than other.
-  let t = r.expr(e).term
+  let t = r.expr(e)
   newQueryAst(GT, r, t)
 
 proc `>`*[T](r: RqlRow, e: T): expr =

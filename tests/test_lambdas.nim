@@ -51,5 +51,8 @@ testSuite LambdasTests:
     self.check(ages[1].num.int in @[50, 43, 45])
     self.check(ages[2].num.int in @[50, 43, 45])
 
+    let res = waitFor self.r.table(self.table).map((x: RqlQuery) => x["age"] >= 30).run()
+    self.check(res.elems.len == 3)
+
 when isMainModule:
   runTests()
