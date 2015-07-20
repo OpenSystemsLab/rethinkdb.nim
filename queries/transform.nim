@@ -13,6 +13,7 @@ proc withFields*(r: RqlQuery, n: varargs[string, `$`]): RqlQuery =
   for x in n.items():
     result.addArg(x)
 
-proc concatMap*[T, U](r: RqlQuery, f: proc(x: T): U): RqlQuery =
+proc concatMap*[U](r: RqlQuery, f: proc(x: RqlQuery): U): RqlQuery =
   ## Concatenate one or more elements into a single sequence using a mapping function.
   newQueryAst(CONCAT_MAP, r)
+  result.addArg(funcWrap(f))
