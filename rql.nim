@@ -1,18 +1,19 @@
 
 ## This module provides all high-level API for query and manipulate data
-
 import asyncdispatch
-import strtabs
 import strutils
 import json
-import typetraits
 import tables
+import future
 
 import ql2
 import datum
 import connection
 import utils
 import types
+
+export newTable
+export `=>`
 
 type
   RqlDatabase* = ref object of RqlQuery
@@ -68,27 +69,6 @@ proc run*(r: RqlQuery, c: RethinkClient = nil): Future[JsonNode] {.async.} =
   else:
     raise newException(RqlDriverError, "Unknow response type $#" % [$response.kind])
 
-#proc `@`*(r: RqlQuery): Term {.inline.} =
-#  result = r.term
-
-proc addArg*[T](r: RqlQuery, t: T) {.noSideEffect.} =
-  when t is RqlQuery:
-    r.args.add(t)
-  else:
-    r.args.add(newDatum(t))
-
-proc setOption*(r: RqlQuery, k: string, v: RqlQuery) {.noSideEffect, inline.} =
-  r.optargs[k] = v
-
-proc setOption*[T](r: RqlQuery, k: string, v: T) {.noSideEffect, inline.} =
-  r.optargs[k] = newDatum(v)
-
-
-
-proc makeArray*[T](t: T): RqlQuery =
-  newQueryAst(MAKE_ARRAY)
-  result.addArg(newDatum(t))
-
 proc makeVar(i: int): RqlQuery =
   newQueryAst(VAR)
   result.addArg(newDatum(i))
@@ -98,8 +78,15 @@ proc funcWrap[T](f: proc(x: RqlQuery): T): RqlQuery =
   newQueryAst(FUNC)
 
   let v1 = makeVar(1)
-  result.addArg(makeArray(1))
-  result.addArg(f(v1))
+  result.addArg(&[1])
+  let res = f(v1)
+  when res is array:
+    var arr = newQuery(MAKE_ARRAY)
+    for x in res:
+      arr.addArg(x)
+    result.addArg(arr)
+  else:
+    result.addArg(res)
 
 proc funcWrap[T](f: proc(x: RqlQuery, y: RqlQuery): T): RqlQuery =
   newQueryAst(FUNC)
@@ -108,7 +95,15 @@ proc funcWrap[T](f: proc(x: RqlQuery, y: RqlQuery): T): RqlQuery =
   let v2 = makeVar(2)
 
   result.addArg(&*[1, 2])
-  result.addArg(f(v1, v2))
+  let res = f(v1, v2)
+  when res is array:
+    var arr = newQuery(MAKE_ARRAY)
+    for x in res:
+      arr.addArg(x)
+    result.addArg(arr)
+  else:
+    result.addArg(res)
+
 
 proc makeFunc*[T](r: T, f: RqlQuery): RqlQuery =
   ## Call an anonymous function using return values from other ReQL commands or queries as arguments.
@@ -120,7 +115,7 @@ proc makeFunc*[T](r: T, f: RqlQuery): RqlQuery =
 
   result = newQuery(FUNC)
   #TODO args count
-  result.addArg(makeArray(varId))
+  result.addArg(&[varId])
   result.addArg(f)
 
 proc `[]`*[T, U](r: T, s: string): U =

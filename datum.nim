@@ -115,6 +115,13 @@ proc newBinary*(s: string): BinaryData =
   new(result)
   result.data = base64.encode(s)
 
+proc `&`*[T: int|float|string](a: openArray[T]): MutableDatum =
+  new(result)
+  result.kind = R_ARRAY
+  result.arr = @[]
+  for x in a:
+    result.arr.add(&x)
+
 proc toDatum(x: NimNode): NimNode {.compiletime.} =
   ## Borrowed from JSON module
   ##

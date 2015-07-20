@@ -1,12 +1,10 @@
 #--------------------
 # Transformations
 #--------------------
-proc map*[T, U](r: T, f: proc(x: RqlQuery): U): RqlQuery =
+proc map*[U](r: RqlQuery, f: proc(x: RqlQuery): U): RqlQuery =
   ## Transform each element of one or more sequences by applying a mapping function to them
   newQueryAst(MAP, r)
-
-  let res = funcWrap(f)
-  result.addArg(res)
+  result.addArg(funcWrap(f))
 
 proc withFields*(r: RqlQuery, n: varargs[string, `$`]): RqlQuery =
   ## Plucks one or more attributes from a sequence of objects,

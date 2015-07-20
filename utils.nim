@@ -1,6 +1,7 @@
 import macros
 import json
 import tables
+import typetraits
 
 import types
 import ql2
@@ -55,8 +56,22 @@ proc newDatum*(t: MutableDatum): RqlQuery =
   result.value = t
 
 proc newDatum*[T](t: T): RqlQuery =
-  newDatum(&t)
+  when t is RqlQuery:
+    result = t
+  else:
+    newDatum(&t)
 
+proc addArg*[T](r: RqlQuery, t: T) =
+  when t is RqlQuery:
+    r.args.add(t)
+  else:
+    r.args.add(newDatum(t))
+
+proc setOption*(r: RqlQuery, k: string, v: RqlQuery) {.noSideEffect, inline.} =
+  r.optargs[k] = v
+
+proc setOption*[T](r: RqlQuery, k: string, v: T) {.noSideEffect, inline.} =
+  r.optargs[k] = newDatum(v)
 
 proc toJson*(r: RqlQuery): JsonNode =
   case r.tt
