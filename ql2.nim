@@ -65,7 +65,7 @@ type
     DIV = 27
     MOD = 28
     APPEND = 29
-    SLICE  = 30
+    SLICE_R  = 30
     GET_FIELD = 31
     HAS_FIELDS = 32
     PLUCK = 33

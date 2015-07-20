@@ -2,7 +2,6 @@ import einheit
 import asyncdispatch
 import json
 import math
-import future
 
 import ../rethinkdb
 

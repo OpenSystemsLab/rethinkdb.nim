@@ -61,6 +61,9 @@ proc newDatum*[T](t: T): RqlQuery =
   else:
     newDatum(&t)
 
+proc `@`*[T](t: T): RqlQUery =
+  newDatum(t)
+
 proc addArg*[T](r: RqlQuery, t: T) =
   when t is RqlQuery:
     r.args.add(t)
