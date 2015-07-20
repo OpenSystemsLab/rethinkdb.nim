@@ -52,4 +52,8 @@ proc filter*[T: MutableDatum|RqlQuery](r: RqlQuery, data: T, default = false): R
   if default:
     result.setOption("default", true)
 
-  #TODO filter by anonymous functions
+proc filter*[T](r: RqlQuery, f: proc(x: RqlQuery): T, default = false): RqlQuery =
+  newQueryAst(FILTER, r)
+  result.addArg(funcWrap(f))
+  if default:
+    result.setOption("default", true)

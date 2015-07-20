@@ -69,7 +69,7 @@ type
     GET_FIELD = 31
     HAS_FIELDS = 32
     PLUCK = 33
-    WITHOUT = 34
+    WITHOUT_R = 34
     MERGE = 35
     BETWEEN_DEPRECATED = 36
     REDUCE = 37

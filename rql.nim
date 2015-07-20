@@ -144,6 +144,7 @@ include queries/writing
 include queries/selecting
 include queries/join
 include queries/transform
+include queries/aggregation
 include queries/document
 include queries/math
 include queries/structures
