@@ -146,5 +146,6 @@ include queries/join
 include queries/transform
 include queries/aggregation
 include queries/document
+include queries/string
 include queries/math
 include queries/structures
