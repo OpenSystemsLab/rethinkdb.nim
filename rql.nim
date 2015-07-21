@@ -148,4 +148,5 @@ include queries/aggregation
 include queries/document
 include queries/string
 include queries/math
+include queries/datetime
 include queries/structures
