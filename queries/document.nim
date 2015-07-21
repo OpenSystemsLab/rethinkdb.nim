@@ -42,3 +42,39 @@ proc prepend*[T](r: RqlQuery, t: T): RqlQuery =
 
 proc diffeence*[T](r: RqlQuery, n: openArray[T]): RqlQuery =
   newQueryAst(DIFFERENCE, r, n)
+
+proc setInsert*[T](r: RqlQuery, t: T): RqlQuery =
+  newQueryAst(SET_INSERT, r, t)
+
+proc setUnion*[T](r: RqlQuery, t: T): RqlQuery =
+  newQueryAst(SET_UNION, r, t)
+
+proc setIntersection*[T](r: RqlQuery, t: T): RqlQuery =
+  newQueryAst(SET_INTERSECTION, r, t)
+
+proc setDifference*[T](r: RqlQuery, t: T): RqlQuery =
+  newQueryAst(SET_DIFFERENCE, r, t)
+
+proc hasFields*[T](r: RqlQuery, n: varargs[T]): RqlQuery =
+  newQueryAst(HAS_FIELDS, r)
+  for x in n:
+    result.addArg(x)
+
+proc spliceAt*[T](r: RqlQuery, index: int, t: T): RqlQuery =
+  newQueryAst(SPLICE_AT, r, index, t)
+
+proc deleteAt*(r: RqlQuery, index: int, endIndex = 0): RqlQuery =
+  newQueryAst(DELETE_AT, r, index)
+  if endIndex != 0:
+    result.addArg(endIndex)
+
+proc changeAt*[T](r: RqlQuery, index: int, t: T): RqlQuery =
+  newQueryAst(CHANGE_AT, r, index, t)
+
+proc keys*(r: RqlQuery): RqlQuery =
+  newQueryAst(KEYS, r)
+
+proc obj*[T](r: T, n: varargs[MutableDatum, `&`]): RqlQuery =
+  newQueryAst(OBJECT_R)
+  for x in n:
+    result.addArg(x)

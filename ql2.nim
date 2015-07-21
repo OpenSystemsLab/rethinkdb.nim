@@ -175,7 +175,7 @@ type
     INDEX_WAIT = 140
     UPCASE = 141
     DOWNCASE = 142
-    OBJECT = 143
+    OBJECT_R = 143
     GROUP = 144
     SUM = 145
     AVG = 146
