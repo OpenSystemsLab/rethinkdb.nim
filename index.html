@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html>
+
+  <head>
+    <meta charset='utf-8'>
+    <meta http-equiv="X-UA-Compatible" content="chrome=1">
+    <meta name="description" content="Rethinkdb.nim : RethinkDB driver for Nim">
+
+    <link rel="stylesheet" type="text/css" media="screen" href="stylesheets/stylesheet.css">
+
+    <title>Rethinkdb.nim</title>
+  </head>
+
+  <body>
+
+    <!-- HEADER -->
+    <div id="header_wrap" class="outer">
+        <header class="inner">
+          <a id="forkme_banner" href="https://github.com/rgv151/rethinkdb.nim">View on GitHub</a>
+
+          <h1 id="project_title">Rethinkdb.nim</h1>
+          <h2 id="project_tagline">RethinkDB driver for Nim</h2>
+
+            <section id="downloads">
+              <a class="zip_download_link" href="https://github.com/rgv151/rethinkdb.nim/zipball/master">Download this project as a .zip file</a>
+              <a class="tar_download_link" href="https://github.com/rgv151/rethinkdb.nim/tarball/master">Download this project as a tar.gz file</a>
+            </section>
+        </header>
+    </div>
+
+    <!-- MAIN CONTENT -->
+    <div id="main_content_wrap" class="outer">
+      <section id="main_content" class="inner">
+        <h1>
+<a id="rethinkdb-driver-for-nim" class="anchor" href="#rethinkdb-driver-for-nim" aria-hidden="true"><span class="octicon octicon-link"></span></a>RethinkDB driver for Nim</h1>
+
+<h2>
+<a id="installation" class="anchor" href="#installation" aria-hidden="true"><span class="octicon octicon-link"></span></a>Installation</h2>
+
+<pre><code>$ nimble install https://github.com/rgv151/rethinkdb.nim
+</code></pre>
+
+<h2>
+<a id="accessing-reql" class="anchor" href="#accessing-reql" aria-hidden="true"><span class="octicon octicon-link"></span></a>Accessing ReQL</h2>
+
+<h3>
+<a id="r" class="anchor" href="#r" aria-hidden="true"><span class="octicon octicon-link"></span></a>r</h3>
+
+<p>Initiate new RethinkDB Client</p>
+
+<div class="highlight highlight-nim"><pre><span class="pl-k">import</span> rethinkdb
+<span class="pl-k">var</span> r = <span class="pl-c1">newRethinkclient</span>([address = <span class="pl-s">"127.0.0.1"</span>,] [port = <span class="pl-c1">Port</span>(<span class="pl-c1">28015</span>),] [auth = <span class="pl-s">""</span>,] [db = <span class="pl-s">""</span>])</pre></div>
+
+<h3>
+<a id="connect" class="anchor" href="#connect" aria-hidden="true"><span class="octicon octicon-link"></span></a>connect</h3>
+
+<p>Create a connection to database server, using infomation from RethinkClient</p>
+
+<div class="highlight highlight-nim"><pre>r.<span class="pl-c1">connect</span>()</pre></div>
+
+<h3>
+<a id="repl" class="anchor" href="#repl" aria-hidden="true"><span class="octicon octicon-link"></span></a>repl</h3>
+
+<p>Set the default connection to make REPL use easier. Allows calling .run() on queries without specifying a connection.</p>
+
+<div class="highlight highlight-nim"><pre>r.<span class="pl-c1">repl</span>()
+<span class="pl-c">#or</span>
+r.<span class="pl-c1">connect</span>()<span class="pl-k">.</span><span class="pl-c1">repl</span>()</pre></div>
+
+<h3>
+<a id="close" class="anchor" href="#close" aria-hidden="true"><span class="octicon octicon-link"></span></a>close</h3>
+
+<p>Close an open connetion</p>
+
+<div class="highlight highlight-nim"><pre>r.<span class="pl-c1">close</span>()</pre></div>
+
+<h3>
+<a id="reconnect" class="anchor" href="#reconnect" aria-hidden="true"><span class="octicon octicon-link"></span></a>reconnect</h3>
+
+<p>Close and reopen a connection</p>
+
+<div class="highlight highlight-nim"><pre>r.<span class="pl-c1">reconnect</span>()</pre></div>
+
+<h3>
+<a id="use" class="anchor" href="#use" aria-hidden="true"><span class="octicon octicon-link"></span></a>use</h3>
+
+<p>Change the defalt database on this connection</p>
+
+<div class="highlight highlight-nim"><pre>r.<span class="pl-c1">use</span>(db_name)</pre></div>
+
+<h3>
+<a id="run" class="anchor" href="#run" aria-hidden="true"><span class="octicon octicon-link"></span></a>run</h3>
+
+<p>Run a query on a connection, returning a JsonNode.</p>
+
+<div class="highlight highlight-nim"><pre><span class="pl-k">var</span> r = <span class="pl-c1">newRethinkclient</span>()
+r.<span class="pl-c1">connect</span>()<span class="pl-k">.</span><span class="pl-c1">repl</span>()
+r.<span class="pl-c1">table</span>(<span class="pl-s">"test"</span>)<span class="pl-k">.</span><span class="pl-c1">run</span>()</pre></div>
+
+<h2>
+<a id="manipulating-databases" class="anchor" href="#manipulating-databases" aria-hidden="true"><span class="octicon octicon-link"></span></a>Manipulating databases</h2>
+
+<ul>
+<li>dbCreate</li>
+<li>dbDrop</li>
+<li>dbList</li>
+</ul>
+
+<h2>
+<a id="manipulating-tables" class="anchor" href="#manipulating-tables" aria-hidden="true"><span class="octicon octicon-link"></span></a>Manipulating tables</h2>
+
+<ul>
+<li>tableCreate</li>
+<li>tableDrop</li>
+<li>tableList</li>
+<li>indexCreate</li>
+<li>indexDrop</li>
+<li>indexList</li>
+<li>indexRename</li>
+<li>indexStatus</li>
+<li>indexWait</li>
+<li>changes</li>
+</ul>
+
+<h2>
+<a id="writing-data" class="anchor" href="#writing-data" aria-hidden="true"><span class="octicon octicon-link"></span></a>Writing data</h2>
+
+<ul>
+<li>insert</li>
+<li>update</li>
+<li>replace</li>
+<li>delete</li>
+<li>sync</li>
+</ul>
+
+<h2>
+<a id="selecting-data" class="anchor" href="#selecting-data" aria-hidden="true"><span class="octicon octicon-link"></span></a>Selecting data</h2>
+
+<ul>
+<li>db</li>
+<li>table</li>
+<li>get</li>
+<li>getAll</li>
+<li>between</li>
+<li>filter</li>
+</ul>
+      </section>
+    </div>
+
+    <!-- FOOTER  -->
+    <div id="footer_wrap" class="outer">
+      <footer class="inner">
+        <p class="copyright">Rethinkdb.nim maintained by <a href="https://github.com/rgv151">rgv151</a></p>
+        <p>Published with <a href="https://pages.github.com">GitHub Pages</a></p>
+      </footer>
+    </div>
+
+    
+
+  </body>
+</html>
