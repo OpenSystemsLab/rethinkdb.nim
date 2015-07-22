@@ -50,6 +50,10 @@ proc indexWait*(r: RqlTable, names: varargs[string]): RqlQuery =
   for name in names:
     result.addArg(newDatum(name))
 
-proc changes*(r: RqlTable): RqlQuery =
+proc changes*[T](r: T, squash = false, includeStates = false): RqlQuery =
   ## Return a changefeed, an infinite stream of objects representing changes to a query
   newQueryAst(CHANGES, r)
+  if squash:
+    result.setOption("squash", squash)
+  if includeStates:
+    result.setOption("include_states", includeStates)
