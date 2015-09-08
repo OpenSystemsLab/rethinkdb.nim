@@ -3,7 +3,7 @@ import rawsockets
 import strutils
 import logging
 import json
-import struct
+import ../../struct.nim/struct
 import tables
 
 import ql2
@@ -88,7 +88,6 @@ proc addOption*(r: RethinkClient, k: string, v: RqlQuery) =
 proc use*(r: RethinkClient, s: string) =
   ## Change the default database on this connection.
   var term: RqlQuery
-  new(term)
   term.tt = DB
   term.args = @[newDatum(s)]
   r.addOption("db", term)

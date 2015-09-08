@@ -7,10 +7,10 @@ import types
 import ql2
 import datum
 
-proc newQueryAst*(n: varargs[expr]): stmt =
+macro newQueryAst*(n: varargs[expr]): stmt =
   result = newNimNode(nnkStmtList, n)
   # new(result)
-  result.add(newCall("new", ident("result")))
+  #result.add(newCall("new", ident("result")))
 
   # result.tt = TermType
   result.add(
@@ -45,13 +45,11 @@ proc newQueryAst*(n: varargs[expr]): stmt =
       result.add(newCall("addArg", ident("result"), n[i]))
 
 proc newQuery*(tt: TermType): RqlQuery {.inline.} =
-  new(result)
   result.tt = tt
   result.args = @[]
   result.optargs = newTable[string, RqlQuery]()
 
 proc newDatum*(t: MutableDatum): RqlQuery =
-  new(result)
   result.tt = DATUM
   result.value = t
 
@@ -61,7 +59,7 @@ proc newDatum*[T](t: T): RqlQuery =
   else:
     newDatum(&t)
 
-proc `@`*[T](t: T): RqlQUery =
+proc `@`*[T](t: T): RqlQuery =
   newDatum(t)
 
 proc addArg*[T](r: RqlQuery, t: T) =
