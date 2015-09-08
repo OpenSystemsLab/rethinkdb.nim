@@ -3,7 +3,7 @@ import tables
 import datum
 
 type
-  RqlQuery* = ref object of RootObj
+  RqlQuery* = object
     args*: seq[RqlQuery]
     optargs*: TableRef[string, RqlQuery]
 

@@ -9,4 +9,4 @@ skipDirs      = "tests"
 
 [Deps]
 Requires: "nim >= 0.11.2"
-Requires: "struct >= 0.0.3"
+Requires: "struct >= 0.1.0"

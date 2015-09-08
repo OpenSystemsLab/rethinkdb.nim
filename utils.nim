@@ -7,7 +7,7 @@ import types
 import ql2
 import datum
 
-macro newQueryAst*(n: varargs[expr]): stmt =
+proc newQueryAst*(n: varargs[expr]): stmt =
   result = newNimNode(nnkStmtList, n)
   # new(result)
   result.add(newCall("new", ident("result")))

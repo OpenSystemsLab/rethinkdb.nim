@@ -113,9 +113,9 @@ proc handshake(r: RethinkClient) {.async.} =
   L.log(lvlDebug, "Preparing handshake...")
   var data: string
   if r.auth.len > 0:
-    data = newStruct("<ii$#si" % [$r.auth.len]).add(HandshakeV0_4).add(r.auth.len.int32).add(r.auth).add(HandshakeJSON).pack()
+    data = pack("<ii$#si" % [$r.auth.len], HandshakeV0_4, r.auth.len, r.auth, HandshakeJSON)
   else:
-    data = newStruct("<iii").add(HandshakeV0_4).add(0.int32).add(HandshakeJSON).pack()
+    data = pack("<iii", HandshakeV0_4, 0, HandshakeJSON)
   await r.sock.send(data)
 
   data = await r.sock.recv(BUFFER_SIZE)
@@ -140,7 +140,7 @@ proc runQuery(r: RethinkClient, q: Query, token: uint64 = 0) {.async.} =
 
   let term = $q
   let termLen = term.len.int32
-  let data = newStruct(">q<i$#s" % $termLen).add(token).add(termLen).add(term).pack()
+  let data = pack(">q<i$#s" % $termLen, token, termLen, term)
   await r.sock.send(data)
 
 proc startQuery*(r: RethinkClient, t: RqlQuery) {.async.} =
