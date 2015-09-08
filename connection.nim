@@ -175,16 +175,15 @@ proc readResponse*(r: RethinkClient): Future[Response] {.async.} =
 proc isConnected*(r: RethinkClient): bool {.noSideEffect, inline.} =
   r.sockConnected
 
-proc connect*(r: RethinkClient): RethinkClient =
+proc connect*(r: RethinkClient) {.async.} =
   ## Create a new connection to the database server
   if not r.isConnected:
     L.log(lvlDebug, "Connecting to server at $#:$#..." % [r.address, $r.port])
-    waitFor r.sock.connect(r.address, r.port)
+    await r.sock.connect(r.address, r.port)
     r.sockConnected = true
-    waitFor r.handshake()
-  result = r
+    await r.handshake()
 
-proc reconnect*(r: RethinkClient): RethinkClient =
+proc reconnect*(r: RethinkClient) {.async.} =
   ## Close and reopen a connection
   r.close()
-  result = r.connect()
+  await r.connect()

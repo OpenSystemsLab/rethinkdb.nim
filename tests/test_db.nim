@@ -12,7 +12,8 @@ testSuite DatabaseManipulationTests:
 
   method setup()=
     self.r = newRethinkClient()
-    self.r.connect().repl()
+    waitFor self.r.connect()
+    self.r.repl()
     randomize()
     self.db = "test_db_" & $random(9999)
 

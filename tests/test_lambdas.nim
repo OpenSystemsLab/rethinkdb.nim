@@ -13,7 +13,8 @@ testSuite LambdasTests:
 
   method setup()=
     self.r = newRethinkClient()
-    self.r.connect().repl()
+    waitFor self.r.connect()
+    self.r.repl()
     randomize()
     self.db = "test_lambda_" & $random(9999)
     self.table = "SuperHeroes"
