@@ -20,7 +20,7 @@ type
     port: Port
     auth: string
     options: TableRef[string, RqlQuery]
-    sock: TAsyncFD
+    sock: AsyncFD
     sockConnected: bool
     queryToken: uint64
 
@@ -102,7 +102,7 @@ proc newRethinkClient*(address = "127.0.0.1", port = Port(28015), auth = "", db 
   result.port = port
   result.auth = auth
   result.options = newTable[string, RqlQuery]()
-  result.sock = newAsyncRawSocket()
+  result.sock = newAsyncNativeSocket()
   result.sockConnected = false
   result.queryToken = 0
 

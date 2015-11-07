@@ -42,6 +42,7 @@ type
     R_TIME
 
   TermType* = enum
+    UNKNOWN = 0
     DATUM = 1
     MAKE_ARRAY = 2
     MAKE_OBJ = 3
