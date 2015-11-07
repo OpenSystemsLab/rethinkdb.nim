@@ -1,5 +1,5 @@
 import asyncdispatch
-import rawsockets
+import nativesockets
 import strutils
 import logging
 import json
