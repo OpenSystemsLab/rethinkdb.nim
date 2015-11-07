@@ -101,6 +101,11 @@ proc `&`*(o: openArray[tuple[key: string, val: MutableDatum]]): MutableDatum =
   for x in o:
     result.obj[x[0]] = x[1]
 
+proc `&`*(o: TableRef[string, MutableDatum]): MutableDatum =
+  new(result)
+  result.kind = R_OBJECT
+  result.obj = o
+
 proc `&`*(b: BinaryData): MutableDatum =
   new(result)
   result.kind = R_BINARY
