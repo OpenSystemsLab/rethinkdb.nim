@@ -60,6 +60,27 @@ proc `%`*(m: MutableDatum): JsonNode =
   else:
     result = newJNull()
 
+proc `%%`*(m: MutableDatum): any =
+  case m.kind
+  of R_STRING:
+    m.str
+  of R_BOOLEAN:
+    m.bval
+  of R_FLOAT:
+    m.fval
+  of R_INTEGER:
+    m.num
+  of R_ARRAY:
+    m.arr
+  of R_OBJECT:
+    m.obj
+  of R_BINARY:
+    m.binary.data
+  of R_TIME:
+    m.time
+  else:
+    nil
+
 proc `&`*(s: string): MutableDatum =
   new(result)
   result.kind = R_STRING
