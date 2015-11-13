@@ -56,11 +56,16 @@ proc `%`*(m: MutableDatum): JsonNode =
   of R_BINARY:
     result = %*{"$reql_type$": "BINARY", "data": m.binary.data}
   of R_TIME:
-    result = %*{"$reql_type$": "TIME", "epoch_time": m.time.timeInfoToTime.toSeconds(), "timezone": m.time.format("zzz")}
+    var tz =
+      if m.time.timezone == 0:
+        "+00:00"
+      else:
+        m.time.format("zzz")
+    result = %*{"$reql_type$": "TIME", "epoch_time": m.time.timeInfoToTime.toSeconds(), "timezone": tz}
   else:
     result = newJNull()
 
-proc `%%`*(m: MutableDatum): any =
+template extract*(m: MutableDatum): stmt {.immediate.} =
   case m.kind
   of R_STRING:
     m.str
