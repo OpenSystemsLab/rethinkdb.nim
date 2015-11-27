@@ -3,35 +3,8 @@ import tables
 import macros
 import times
 import base64
-
+import types
 import ql2
-type
-  RqlQuery {.pure.} = object
-  BinaryData* = ref object of RootObj
-    data*: string
-
-  MutableDatum* = ref object of RootObj
-    case kind*: DatumType
-    of R_NULL:
-      discard
-    of R_BOOLEAN:
-      bval*: bool
-    of R_INTEGER:
-      num*: int64
-    of R_FLOAT:
-      fval*: float64
-    of R_STRING, R_JSON:
-      str*: string
-    of R_ARRAY:
-      arr*: seq[MutableDatum]
-    of R_OBJECT:
-      obj*: TableRef[string, MutableDatum]
-    of R_BINARY:
-      binary*: BinaryData
-    of R_TIME:
-      time*: TimeInfo
-    of R_TERM:
-      term*: RqlQuery
 
 proc `%`*(m: MutableDatum): JsonNode =
   if m.isNil:
@@ -68,6 +41,10 @@ proc `%`*(m: MutableDatum): JsonNode =
   of R_TERM:
     result = newJArray()
     result.add(newJInt(m.term.tt.ord))
+    var args = newJArray()
+    for arg in m.term.args:
+      args.add(%arg.value)
+    result.add(args)
   else:
     result = newJNull()
 
@@ -149,8 +126,6 @@ proc `&`*(t: TimeInfo): MutableDatum =
   result.time = t
 
 
-
-
 proc newBinary*(s: string): BinaryData =
   new(result)
   result.data = base64.encode(s)
@@ -161,6 +136,39 @@ proc `&`*[T: int|float|string](a: openArray[T]): MutableDatum =
   result.arr = @[]
   for x in a:
     result.arr.add(&x)
+
+proc `&`*(r: RqlQuery): MutableDatum =
+  new(result)
+  result.kind = R_TERM
+  result.term = r
+
+proc `&`*(node: JsonNode): MutableDatum =
+  new(result)
+  case node.kind
+  of JString:
+    result.kind = R_STRING
+    result.str = node.str
+  of JInt:
+    result.kind = R_INTEGER
+    result.num = node.num
+  of JFloat:
+    result.kind = R_FLOAT
+    result.fval = node.fnum
+  of JBool:
+    result.kind = R_BOOLEAN
+    result.bval = node.bval
+  of JNull:
+    result.kind = R_NULL
+  of JObject:
+    result.kind = R_OBJECT
+    result.obj = newTable[string, MutableDatum]()
+    for key, item in items(node.fields):
+      result.obj[key] = &item
+  of JArray:
+    result.kind = R_ARRAY
+    result.arr = @[]
+    for item in items(node.elems):
+      result.arr.add(&item)
 
 proc toDatum(x: NimNode): NimNode {.compiletime.} =
   ## Borrowed from JSON module
