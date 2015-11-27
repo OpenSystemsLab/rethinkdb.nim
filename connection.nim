@@ -66,6 +66,12 @@ proc `$`*(r: Response): string =
   #  j.add(r.profile)
   result = $j
 
+proc `&`*(r: RqlQuery): MutableDatum =
+  new(result)
+  result.kind = R_TERM
+  result.arr = @[]
+  result.arr.add(r.value)
+
 proc newResponse(s: string, t: uint64 = 0): Response =
   new(result)
   let json = parseJson(s)

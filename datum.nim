@@ -6,6 +6,7 @@ import base64
 
 import ql2
 type
+  RqlQuery {.pure.} = object
   BinaryData* = ref object of RootObj
     data*: string
 
@@ -29,6 +30,8 @@ type
       binary*: BinaryData
     of R_TIME:
       time*: TimeInfo
+    of R_TERM:
+      term*: RqlQuery
 
 proc `%`*(m: MutableDatum): JsonNode =
   if m.isNil:
@@ -62,6 +65,9 @@ proc `%`*(m: MutableDatum): JsonNode =
       else:
         m.time.format("zzz")
     result = %*{"$reql_type$": "TIME", "epoch_time": m.time.timeInfoToTime.toSeconds(), "timezone": tz}
+  of R_TERM:
+    result = newJArray()
+    result.add(newJInt(m.term.tt.ord))
   else:
     result = newJNull()
 
@@ -141,6 +147,9 @@ proc `&`*(t: TimeInfo): MutableDatum =
   new(result)
   result.kind = R_TIME
   result.time = t
+
+
+
 
 proc newBinary*(s: string): BinaryData =
   new(result)

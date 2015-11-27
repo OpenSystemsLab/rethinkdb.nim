@@ -40,6 +40,7 @@ type
     R_JSON
     R_BINARY
     R_TIME
+    R_TERM
 
   TermType* = enum
     UNKNOWN = 0

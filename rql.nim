@@ -150,3 +150,4 @@ include queries/string
 include queries/math
 include queries/datetime
 include queries/structures
+include queries/geospatial
