@@ -2,7 +2,7 @@
 # Writing data
 #--------------------
 
-proc insert*(r: RqlTable, data: openArray[MutableDatum], durability="hard", returnChanges=false, conflict="error"): RqlQuery =
+proc insert*[T: MutableDatum|openArray[MutableDatum]](r: RqlTable, data: T, durability="hard", returnChanges=false, conflict="error"): RqlQuery =
   ## Insert documents into a table. Accepts a single document or an array of documents
   newQueryAst(INSERT, r, data)
 
@@ -12,7 +12,6 @@ proc insert*(r: RqlTable, data: openArray[MutableDatum], durability="hard", retu
     result.setOption("return_changes", true)
   if conflict != "error":
     result.setOption("conflict", conflict)
-
 
 proc update*(r: RqlQuery, data: MutableDatum, durability="hard", returnChanges=false, nonAtomic=false): RqlQuery =
   ## Insert documents into a table. Accepts a single document or an array of documents
