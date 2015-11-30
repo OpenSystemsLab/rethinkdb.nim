@@ -32,7 +32,11 @@ var
 proc repl*(r: RethinkClient) =
   defaultClient = r
 
-proc run*(r: RqlQuery, c: RethinkClient = nil): Future[JsonNode] {.async.} =
+proc run*(r: RqlQuery, c: RethinkClient = nil, readMode = "single",
+          timeFormat = "native", profile = false, durability = "hard", groupFormat = "native",
+          noreply = false, db = "", arrayLimit = 100_000, binaryFormat = "native",
+          minBatchRows = 8, maxBatchRows = 0, maxBatchBytes = 0, maxBatchSeconds = 0.5,
+          firstBatchScaleDownFactor = 4): Future[JsonNode] {.async.} =
   ## Run a query on a connection, returning a `JsonNode` contains single JSON result or an JsonArray, depending on the query.
   var c = c
   if c.isNil:
@@ -42,6 +46,48 @@ proc run*(r: RqlQuery, c: RethinkClient = nil): Future[JsonNode] {.async.} =
 
   if not c.isConnected:
     raise newException(RqlClientError, "Connection is closed.")
+
+  if readMode != "single":
+    r.setOption("read_mode", readMode)
+
+  if timeFormat != "native":
+    r.setOption("time_format", timeFormat)
+
+  if profile:
+    r.setOption("profile", profile)
+
+  if durability != "hard":
+    r.setOption("durability", durability)
+
+  if groupFormat != "native":
+    r.setOption("group_format", groupFormat)
+
+  if noreply:
+    r.setOption("noreply", noreply)
+
+  if db != "":
+    r.setOption("db", db)
+
+  if arrayLimit != 100_000:
+    r.setOption("array_limit", arrayLimit)
+
+  if binaryFormat != "native":
+    r.setOption("binary_format", binaryFormat)
+
+  if minBatchRows != 8:
+    r.setOption("min_batch_rows", minBatchRows)
+
+  if maxBatchRows != 0:
+    r.setOption("max_batch_rows", maxBatchRows)
+
+  if maxBatchBytes != 0:
+    r.setOption("max_batch_bytes", maxBatchBytes)
+
+  if maxBatchSeconds != 0.5:
+    r.setOption("max_batch_seconds", maxBatchSeconds)
+
+  if firstBatchScaleDownFactor != 4:
+    r.setOption("first_batch_scaledown_factor", firstBatchScaleDownFactor)
 
   await c.startQuery(r)
   var response = await c.readResponse()
