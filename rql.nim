@@ -47,78 +47,77 @@ proc run*(r: RqlQuery, c: RethinkClient = nil, readMode = "single",
   if not c.isConnected:
     raise newException(RqlClientError, "Connection is closed.")
 
+  var options = newTable[string, MutableDatum]()
+
   if readMode != "single":
-    c.addOption("read_mode", &readMode)
+    options["read_mode"] = &readMode
 
   if timeFormat != "native":
-    c.addOption("time_format", &timeFormat)
+    options["time_format"] = &timeFormat
 
   if profile:
-    c.addOption("profile", &profile)
+    options["profile"] = &profile
 
   if durability != "hard":
-    c.addOption("durability", &durability)
+    options["durability"] = &durability
 
   if groupFormat != "native":
-    c.addOption("group_format", &groupFormat)
+    options["group_format"] = &groupFormat
 
   if noreply:
-    c.addOption("noreply", &noreply)
+    options["noreply"] = &noreply
 
   if db != "":
-    c.addOption("db", &db)
+    options["db"] = &db
 
   if arrayLimit != 100_000:
-    c.addOption("array_limit", &arrayLimit)
+    options["array_limit"] = &arrayLimit
 
   if binaryFormat != "native":
-    c.addOption("binary_format", &binaryFormat)
+    options["binary_format"] = &binaryFormat
 
   if minBatchRows != 8:
-    c.addOption("min_batch_rows", &minBatchRows)
+    options["min_batch_rows"] = &minBatchRows
 
   if maxBatchRows != 0:
-    c.addOption("max_batch_rows", &maxBatchRows)
+    options["max_batch_rows"] = &maxBatchRows
 
   if maxBatchBytes != 0:
-    c.addOption("max_batch_bytes", &maxBatchBytes)
+    options["max_batch_bytes"] = &maxBatchBytes
 
   if maxBatchSeconds != 0.5:
-    c.addOption("max_batch_seconds", &maxBatchSeconds)
+    options["max_batch_seconds"] = &maxBatchSeconds
 
   if firstBatchScaleDownFactor != 4:
-    c.addOption("first_batch_scaledown_factor", &firstBatchScaleDownFactor)
+    options["first_batch_scaledown_factor"] = &firstBatchScaleDownFactor
 
-  await c.startQuery(r)
+  await c.startQuery(r, options)
 
-  if noreply:
-    discard c.readResponse()
-    return
+  if not noreply:
+    var response = await c.readResponse()
 
-  var response = await c.readResponse()
-
-  case response.kind
-  of SUCCESS_ATOM:
-    result = response.data[0]
-  of WAIT_COMPLETE:
-    discard
-  of SUCCESS_PARTIAL, SUCCESS_SEQUENCE:
-    result = newJArray()
-    result.add(response.data)
-    while response.kind == SUCCESS_PARTIAL:
-      await c.continueQuery(response.token)
-      response = await c.readResponse()
+    case response.kind
+    of SUCCESS_ATOM:
+      result = response.data[0]
+    of WAIT_COMPLETE:
+      discard
+    of SUCCESS_PARTIAL, SUCCESS_SEQUENCE:
+      result = newJArray()
       result.add(response.data)
-    if result.elems.len == 1:
-      return result[0]
-  of CLIENT_ERROR:
-    raise newException(RqlClientError, $response.data[0])
-  of COMPILE_ERROR:
-    raise newException(RqlCompileError, $response.data[0])
-  of RUNTIME_ERROR:
-    raise newException(RqlRuntimeError, $response.data[0])
-  else:
-    raise newException(RqlDriverError, "Unknow response type $#" % [$response.kind])
+      while response.kind == SUCCESS_PARTIAL:
+        await c.continueQuery(response.token)
+        response = await c.readResponse()
+        result.add(response.data)
+        if result.elems.len == 1:
+          return result[0]
+    of CLIENT_ERROR:
+      raise newException(RqlClientError, $response.data[0])
+    of COMPILE_ERROR:
+      raise newException(RqlCompileError, $response.data[0])
+    of RUNTIME_ERROR:
+      raise newException(RqlRuntimeError, $response.data[0])
+    else:
+      raise newException(RqlDriverError, "Unknow response type $#" % [$response.kind])
 
 proc makeVar(i: int): RqlQuery =
   newQueryAst(VAR)

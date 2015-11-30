@@ -130,9 +130,7 @@ proc close*(r: RethinkClient) =
   L.log(lvlDebug, "Disconnected from server...")
 
 proc runQuery(r: RethinkClient, q: Query, token: uint64 = 0) {.async.} =
-  q.options = r.options
-
-  L.log(lvlDebug, "Sending query: $#" % [$q])
+  #L.log(lvlDebug, "Sending query: $#" % [$q])
 
   var token = token
   if token == 0:
@@ -143,12 +141,22 @@ proc runQuery(r: RethinkClient, q: Query, token: uint64 = 0) {.async.} =
   let data = pack(">q<i$#s" % $termLen, token, termLen, term)
   await r.sock.send(data)
 
-proc startQuery*(r: RethinkClient, t: RqlQuery) {.async.} =
+proc startQuery*(r: RethinkClient, t: RqlQuery, options: TableRef[string, MutableDatum] = nil) {.async.} =
   ## Send START query
   var q: Query
   new(q)
   q.kind = START
   q.term = t
+  q.options = newTable[string, MutableDatum]()
+
+  #shallowCopy(q.options, r.options)
+  if not r.options.isNil and r.options.len > 0:
+    for k, v in r.options.pairs():
+      q.options.add(k, v)
+  if not options.isNil:
+    for k, v in options.pairs():
+      q.options.add(k, v)
+
   await r.runQuery(q)
 
 proc continueQuery*(r: RethinkClient, token: uint64 = 0) {.async.} =
@@ -168,7 +176,7 @@ proc readResponse*(r: RethinkClient): Future[Response] {.async.} =
   let token = header[0].getUQuad
   let length = header[1].getInt
   let buf = await r.sock.recv(length)
-  L.log(lvlDebug, "Response: [$#, $#, $#]" % [$token, $length, buf])
+  #L.log(lvlDebug, "Response: [$#, $#, $#]" % [$token, $length, buf])
 
   result = newResponse(buf, token)
 
