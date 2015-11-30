@@ -90,6 +90,11 @@ proc run*(r: RqlQuery, c: RethinkClient = nil, readMode = "single",
     c.addOption("first_batch_scaledown_factor", &firstBatchScaleDownFactor)
 
   await c.startQuery(r)
+
+  if noreply:
+    discard c.readResponse()
+    return
+
   var response = await c.readResponse()
 
   case response.kind
