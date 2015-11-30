@@ -48,46 +48,46 @@ proc run*(r: RqlQuery, c: RethinkClient = nil, readMode = "single",
     raise newException(RqlClientError, "Connection is closed.")
 
   if readMode != "single":
-    r.setOption("read_mode", readMode)
+    c.addOption("read_mode", &readMode)
 
   if timeFormat != "native":
-    r.setOption("time_format", timeFormat)
+    c.addOption("time_format", &timeFormat)
 
   if profile:
-    r.setOption("profile", profile)
+    c.addOption("profile", &profile)
 
   if durability != "hard":
-    r.setOption("durability", durability)
+    c.addOption("durability", &durability)
 
   if groupFormat != "native":
-    r.setOption("group_format", groupFormat)
+    c.addOption("group_format", &groupFormat)
 
   if noreply:
-    r.setOption("noreply", noreply)
+    c.addOption("noreply", &noreply)
 
   if db != "":
-    r.setOption("db", db)
+    c.addOption("db", &db)
 
   if arrayLimit != 100_000:
-    r.setOption("array_limit", arrayLimit)
+    c.addOption("array_limit", &arrayLimit)
 
   if binaryFormat != "native":
-    r.setOption("binary_format", binaryFormat)
+    c.addOption("binary_format", &binaryFormat)
 
   if minBatchRows != 8:
-    r.setOption("min_batch_rows", minBatchRows)
+    c.addOption("min_batch_rows", &minBatchRows)
 
   if maxBatchRows != 0:
-    r.setOption("max_batch_rows", maxBatchRows)
+    c.addOption("max_batch_rows", &maxBatchRows)
 
   if maxBatchBytes != 0:
-    r.setOption("max_batch_bytes", maxBatchBytes)
+    c.addOption("max_batch_bytes", &maxBatchBytes)
 
   if maxBatchSeconds != 0.5:
-    r.setOption("max_batch_seconds", maxBatchSeconds)
+    c.addOption("max_batch_seconds", &maxBatchSeconds)
 
   if firstBatchScaleDownFactor != 4:
-    r.setOption("first_batch_scaledown_factor", firstBatchScaleDownFactor)
+    c.addOption("first_batch_scaledown_factor", &firstBatchScaleDownFactor)
 
   await c.startQuery(r)
   var response = await c.readResponse()

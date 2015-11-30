@@ -19,7 +19,7 @@ type
     address: string
     port: Port
     auth: string
-    options: TableRef[string, RqlQuery]
+    options: TableRef[string, MutableDatum]
     sock: AsyncFD
     sockConnected: bool
     queryToken: uint64
@@ -39,7 +39,7 @@ type
   Query* = ref object of RootObj
     kind*: QueryType
     term*: RqlQuery
-    options*: TableRef[string, RqlQuery]
+    options*: TableRef[string, MutableDatum]
 
 var
   L = newConsoleLogger()
@@ -52,7 +52,7 @@ proc `$`*(q: Query): string =
     j.add(q.term.toJson)
     var opts = newJObject()
     for k, v in q.options.pairs():
-        opts.add(k, v.toJson)
+        opts.add(k, %v)
     j.add(opts)
   result = $j
 
@@ -81,7 +81,7 @@ proc nextToken(r: RethinkClient): uint64 =
   r.queryToken.inc()
   result = r.queryToken
 
-proc addOption*(r: RethinkClient, k: string, v: RqlQuery) =
+proc addOption*(r: RethinkClient, k: string, v: MutableDatum) =
   ## Set a global option
   r.options[k] = v
 
@@ -91,7 +91,7 @@ proc use*(r: RethinkClient, s: string) =
   new(term)
   term.tt = DB
   term.args = @[newDatum(s)]
-  r.addOption("db", term)
+  r.addOption("db", &term)
 
 proc newRethinkClient*(address = "127.0.0.1", port = Port(28015), auth = "", db = ""): RethinkClient =
   ## Init new client instance
@@ -101,7 +101,7 @@ proc newRethinkClient*(address = "127.0.0.1", port = Port(28015), auth = "", db 
   result.address = address
   result.port = port
   result.auth = auth
-  result.options = newTable[string, RqlQuery]()
+  result.options = newTable[string, MutableDatum]()
   result.sock = newAsyncNativeSocket()
   result.sockConnected = false
   result.queryToken = 0
