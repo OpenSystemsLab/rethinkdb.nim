@@ -183,13 +183,22 @@ proc readResponse*(r: RethinkClient): Future[Response] {.async.} =
 proc isConnected*(r: RethinkClient): bool {.noSideEffect, inline.} =
   r.sockConnected
 
-proc connect*(r: RethinkClient) {.async.} =
-  ## Create a new connection to the database server
-  if not r.isConnected:
-    L.log(lvlDebug, "Connecting to server at $#:$#..." % [r.address, $r.port])
-    await r.sock.connect(r.address, r.port)
-    r.sockConnected = true
-    await r.handshake()
+when not compileOption("threads"):
+  proc connect*(r: RethinkClient) {.async.} =
+    ## Create a new connection to the database server
+    if not r.isConnected:
+      L.log(lvlDebug, "Connecting to server at $#:$#..." % [r.address, $r.port])
+      await r.sock.connect(r.address, r.port)
+      r.sockConnected = true
+      await r.handshake()
+else:
+  proc connect*(r: RethinkClient) {.async.} =
+    ## Create a new connection to the database server
+    if not r.isConnected:
+      L.log(lvlDebug, "Connecting to server at $#:$#..." % [r.address, $r.port])
+      await r.sock.connect(r.address, r.port)
+      r.sockConnected = true
+      await r.handshake()
 
 proc reconnect*(r: RethinkClient) {.async.} =
   ## Close and reopen a connection
