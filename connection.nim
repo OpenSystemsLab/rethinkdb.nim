@@ -52,7 +52,9 @@ type
     options*: TableRef[string, MutableDatum]
 
 var
-  L = newConsoleLogger()
+  L {.threadvar.}: ConsoleLogger
+
+L = newConsoleLogger()
 
 proc `$`*(q: Query): string =
   var j = newJArray()
@@ -136,6 +138,7 @@ when not compileOption("threads"):
       raise newException(RqlDriverError, data)
     L.log(lvlDebug, "Handshake success...")
 else:
+
   proc handshake(r: RethinkClient) =
     L.log(lvlDebug, "Preparing handshake...")
     var data: string
@@ -145,20 +148,11 @@ else:
       data = pack("<iii", HandshakeV0_4, 0.int32, HandshakeJSON)
     r.sock.send(data)
 
-    var
-      buf = newString(BUFFER_SIZE)
-      ret: int
+    var buf = r.sock.readUntil('\0')
 
-    r.sock.readLine(buf)
-    echo buf
-
-
-    if ret <= 0:
-      if buf[0..6] != "SUCCESS":
-        raise newException(RqlDriverError, buf)
-      L.log(lvlDebug, "Handshake success...")
-    else:
-      raise newException(RqlDriverError, "Unable to handshake with server. Error: $#" % $ret)
+    if buf[0..6] != "SUCCESS":
+      raise newException(RqlDriverError, buf)
+    L.log(lvlDebug, "Handshake success...")
 
 
 proc close*(r: RethinkClient) =
@@ -175,7 +169,7 @@ proc isConnected*(r: RethinkClient): bool {.noSideEffect, inline.} =
 
 when not compileOption("threads"):
   proc runQuery(r: RethinkClient, q: Query, token: uint64 = 0) {.async.} =
-    #L.log(lvlDebug, "Sending query: $#" % [$q])
+    L.log(lvlDebug, "Sending query: $#" % [$q])
     var token = token
     if token == 0:
       token = r.nextToken
@@ -192,7 +186,6 @@ when not compileOption("threads"):
     q.term = t
     q.options = newTable[string, MutableDatum]()
 
-    #shallowCopy(q.options, r.options)
     if not r.options.isNil and r.options.len > 0:
       for k, v in r.options.pairs():
         q.options.add(k, v)
@@ -238,14 +231,14 @@ when not compileOption("threads"):
 
 else:
   proc runQuery(r: RethinkClient, q: Query, token: uint64 = 0): int =
-    #L.log(lvlDebug, "Sending query: $#" % [$q])
+    L.log(lvlDebug, "Sending query: $#" % [$q])
     var token = token
     if token == 0:
       token = r.nextToken
     let term = $q
     let termLen = term.len.int32
     var data = pack(">q<i$#s" % $termLen, token, termLen, term)
-    r.sock.send(addr data, data.len)
+    r.sock.send(data)
 
   proc startQuery*(r: RethinkClient, t: RqlQuery, options: TableRef[string, MutableDatum] = nil) =
     ## Send START query
@@ -255,7 +248,6 @@ else:
     q.term = t
     q.options = newTable[string, MutableDatum]()
 
-    #shallowCopy(q.options, r.options)
     if not r.options.isNil and r.options.len > 0:
       for k, v in r.options.pairs():
         q.options.add(k, v)
@@ -275,16 +267,18 @@ else:
 
   proc readResponse*(r: RethinkClient): Response  =
     var data = newString(12)
-    var ret = r.sock.recv(addr data, 12)
-    if data == "":
-      r.close()
+    var ret = r.sock.recv(data, 12)
+    if ret <= 0:
+      raise newException(RqlDriverError, "Unable to read packet header")
 
     let header = unpack(">Q<i", data)
     let token = header[0].getUQuad
     let length = header[1].getInt
-    var buf = newString(length)
-    ret = r.sock.recv(addr buf, length)
-    #L.log(lvlDebug, "Response: [$#, $#, $#]" % [$token, $length, buf])
+    var buf = ""
+    ret = r.sock.recv(buf, length)
+    if ret <= 0:
+      raise newException(RqlDriverError, "Unable to read packet body")
+    L.log(lvlDebug, "Response: [$#, $#, $#]" % [$token, $length, buf])
 
     newResponse(buf, token)
 

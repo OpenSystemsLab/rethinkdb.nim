@@ -21,10 +21,11 @@ type
     firstVar: bool # indicate this is the first selector
 
 var
-  defaultClient: RethinkClient
+  defaultClient {.threadvar.}: RethinkClient
 
 proc repl*(r: RethinkClient) =
   defaultClient = r
+
 when not compileOption("threads"):
   proc run*(r: RqlQuery, c: RethinkClient = nil, readMode = "single",
             timeFormat = "native", profile = false, durability = "hard", groupFormat = "native",
@@ -175,6 +176,7 @@ else:
     c.startQuery(r, options)
 
     if not noreply:
+
       var response = c.readResponse()
 
       case response.kind
@@ -198,7 +200,7 @@ else:
       of RUNTIME_ERROR:
         raise newException(RqlRuntimeError, $response.data[0])
       else:
-        raise newException(RqlDriverError, "Unknow response type $#" % [$response.kind])
+        raise newException(RqlDriverError, "Unknown response type $#" % [$response.kind])
 
 
 proc makeVar(i: int): RqlQuery =

@@ -1,11 +1,6 @@
-import macros
-import json
-import tables
-import typetraits
+import macros, json, tables, typetraits, net
 
-import types
-import ql2
-import datum
+import types, ql2, datum
 
 macro newQueryAst*(n: varargs[expr]): stmt =
   result = newNimNode(nnkStmtList, n)
@@ -93,3 +88,20 @@ proc toJson*(r: RqlQuery): JsonNode =
         obj.fields.add((key: k, val: v.toJson))
 
       result.add(obj)
+
+
+proc readUntil*(s: Socket, delim: char, bufferSize = 12): string =
+  result = newString(bufferSize)
+  var
+    c: char
+    byteRead = 0
+  while s.recv(addr c, 1) == 1:
+    if c == delim:
+      break
+
+    if byteRead >= result.len:
+      setLen(result, result.len + bufferSize)
+
+    result[byteRead] = c
+
+    inc(byteRead)
