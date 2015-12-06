@@ -252,7 +252,7 @@ proc makeFunc*[T](r: T, f: RqlQuery): RqlQuery =
   result.addArg(&[varId])
   result.addArg(f)
 
-proc `[]`*[T](r: T, s: string): auto =
+proc `[]`*[T: RethinkClient|RqlQuery|RqlTable](r: T, s: string): auto =
   ## Operator for create row's fields chain
   ##
   ## Example:

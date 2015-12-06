@@ -8,10 +8,6 @@ else:
 
 import ql2, types, utils, datum
 
-const
-  BUFFER_SIZE: int = 512
-
-
 when not compileOption("threads"):
   type
     RethinkClient* = ref object of RootObj

@@ -38,7 +38,7 @@ proc range*[T](r: T, endValue: int): RqlQuery =
     newQueryAst(RANGE, r)
   result.addArg(endValue)
 
-proc range*[T](r: T, startValue, endValue): RqlQuery =
+proc range*[T](r: T, startValue, endValue: int): RqlQuery =
   when r is RethinkClient:
     newQueryAst(RANGE)
   else:
