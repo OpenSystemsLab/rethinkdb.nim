@@ -1,6 +1,6 @@
 [Package]
 name          = "rethinkdb"
-version       = "0.1.4"
+version       = "0.1.5"
 author        = "Huy Doan"
 description   = "RethinkDB driver for Nim"
 license       = "MIT"

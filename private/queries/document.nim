@@ -34,13 +34,13 @@ proc merge*[T, U](r: T, n: varargs[proc(x: RqlQuery): U]): RqlQuery =
   for f in n:
     result.addArg(funcWrap(f))
 
-proc append*[T](r: RqlQuery, t: T): RqlQuery =
-  newQueryAst(APPEND, t)
+proc append*[T](r: RqlRow, t: T): RqlQuery =
+  newQueryAst(APPEND, r, t)
 
-proc prepend*[T](r: RqlQuery, t: T): RqlQuery =
-  newQueryAst(PREPEND, t)
+proc prepend*[T](r: RqlRow, t: T): RqlQuery =
+  newQueryAst(PREPEND, r, t)
 
-proc diffeence*[T](r: RqlQuery, n: openArray[T]): RqlQuery =
+proc difference*[T](r: RqlQuery, n: openArray[T]): RqlQuery =
   newQueryAst(DIFFERENCE, r, n)
 
 proc setInsert*[T](r: RqlQuery, t: T): RqlQuery =

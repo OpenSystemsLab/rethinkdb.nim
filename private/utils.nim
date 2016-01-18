@@ -71,25 +71,6 @@ proc setOption*(r: RqlQuery, k: string, v: RqlQuery) {.noSideEffect, inline.} =
 proc setOption*[T](r: RqlQuery, k: string, v: T) {.noSideEffect, inline.} =
   r.optargs[k] = newDatum(v)
 
-proc toJson*(r: RqlQuery): JsonNode =
-  case r.tt
-  of DATUM:
-    result = %r.value
-  else:
-    result = newJArray()
-    result.add(newJInt(r.tt.ord))
-    var arr = newJArray()
-    for x in r.args:
-      arr.add(x.toJson)
-    result.add(arr)
-    if not r.optargs.isNil and r.optargs.len > 0:
-      var obj = newJObject()
-      for k, v in r.optargs.pairs:
-        obj.fields.add((key: k, val: v.toJson))
-
-      result.add(obj)
-
-
 proc readUntil*(s: Socket, delim: char, bufferSize = 12): string =
   result = newString(bufferSize)
   var

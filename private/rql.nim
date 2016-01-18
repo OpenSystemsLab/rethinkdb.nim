@@ -239,7 +239,7 @@ proc funcWrap[T](f: proc(x: RqlQuery, y: RqlQuery): T): RqlQuery =
     result.addArg(res)
 
 
-proc makeFunc*[T](r: T, f: RqlQuery): RqlQuery =
+proc makeFunc*[T](f: T): RqlQuery =
   ## Call an anonymous function using return values from other ReQL commands or queries as arguments.
   ##
   ## renamed from `do` function to avoid keyword conflict

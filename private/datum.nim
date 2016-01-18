@@ -6,6 +6,8 @@ import base64
 import types
 import ql2
 
+proc toJson*(r: RqlQuery): JsonNode
+
 proc `%`*(m: MutableDatum): JsonNode =
   if m.isNil:
     return newJNull()
@@ -43,10 +45,29 @@ proc `%`*(m: MutableDatum): JsonNode =
     result.add(newJInt(m.term.tt.ord))
     var args = newJArray()
     for arg in m.term.args:
-      args.add(%arg.value)
+      args.add(arg.toJson)
     result.add(args)
   else:
     result = newJNull()
+
+proc toJson*(r: RqlQuery): JsonNode =
+  case r.tt
+  of DATUM:
+    result = %r.value
+  else:
+    result = newJArray()
+    result.add(newJInt(r.tt.ord))
+    var arr = newJArray()
+    for x in r.args:
+      arr.add(x.toJson)
+    result.add(arr)
+    if not r.optargs.isNil and r.optargs.len > 0:
+      var obj = newJObject()
+      for k, v in r.optargs.pairs:
+        obj.fields.add((key: k, val: v.toJson))
+
+      result.add(obj)
+
 
 template extract*(m: MutableDatum): stmt {.immediate.} =
   case m.kind
@@ -114,6 +135,12 @@ proc `&`*(o: TableRef[string, MutableDatum]): MutableDatum =
   new(result)
   result.kind = R_OBJECT
   result.obj = o
+
+proc `&`*[T](a: openArray[(string, T)]): MutableDatum =
+  var tbl = newTable[string, MutableDatum]()
+  for x in a:
+    tbl[x[0]] = &x[1]
+  &tbl
 
 proc `&`*(b: BinaryData): MutableDatum =
   new(result)

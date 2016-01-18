@@ -9,6 +9,8 @@ else:
 import ql2, types, utils, datum
 
 when not compileOption("threads"):
+  const
+    BUFFER_SIZE = 512
   type
     RethinkClient* = ref object of RootObj
       address: string
