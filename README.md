@@ -2,7 +2,7 @@
 
 ## Installation
 ```
-$ nimble install https://github.com/rgv151/rethinkdb.nim
+$ nimble install rethinkdb
 ```
 
 ## Accessing ReQL
