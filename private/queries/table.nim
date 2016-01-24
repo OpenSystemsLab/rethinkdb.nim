@@ -17,11 +17,23 @@ proc tableDrop*[T: RethinkClient|RqlDatabase](r: T, t: string): RqlQuery =
   else:
     newQueryAst(TABLE_DROP, r, t)
 
-#TODO create index
+proc indexCreate*(r: RqlTable, n: string, f: RqlQuery = nil, multi = false, geo = false): RqlQuery =
+  ## Create a new secondary index on a table.
+  newQueryAst(INDEX_CREATE, r, n)
 
-proc indexDrop*(r: RqlTable, t: string): RqlQuery =
+  if not isNil(f):
+    result.addArg(f)
+
+  if multi:
+   result.setOption("multi", multi)
+
+  if geo:
+   result.setOption("geo", geo)
+
+
+proc indexDrop*(r: RqlTable, n: string): RqlQuery =
   ## Delete a previously created secondary index of this table
-  newQueryAst(INDEX_DROP, r, t)
+  newQueryAst(INDEX_DROP, r, n)
 
 proc indexList*(r: RqlTable): RqlQuery =
   ## List all the secondary indexes of this table.
