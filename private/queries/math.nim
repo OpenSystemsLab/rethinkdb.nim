@@ -6,6 +6,13 @@ proc `+`*[T](r: RqlQuery, b: T): RqlQuery =
   ## Sum two numbers, concatenate two strings, or concatenate 2 arrays
   newQueryAst(ADD, r, b)
 
+proc `+`*[T](b: T, r: RqlQuery): RqlQuery =
+  ## Sum two numbers, concatenate two strings, or concatenate 2 arrays
+  r + b
+
+proc add*[T](r: RqlQuery, b: T): RqlQuery {.inline.} =
+  r + b
+
 proc `-`*[T](r: RqlQuery, b: T): RqlQuery =
   ## Subtract two numbers.
   newQueryAst(SUB, r, b)
