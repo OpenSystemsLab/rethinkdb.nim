@@ -1,58 +1,49 @@
-import einheit
-import asyncdispatch
-import json
-import math
-
+import unittest, json, math
 import ../rethinkdb
 
-testSuite LambdasTests:
-  var
-    r: RethinkClient
-    db: string
-    table: string
+let r = newRethinkClient()
+r.connect()
+r.repl()
 
-  method setup()=
-    self.r = newRethinkClient()
-    waitFor self.r.connect()
-    self.r.repl()
-    randomize()
-    self.db = "test_lambda_" & $random(9999)
-    self.table = "SuperHeroes"
+randomize()
+let db = "test_lambda_" & $random(9999)
+let table = "SuperHeroes"
 
-    discard waitFor self.r.dbCreate(self.db).run()
-    self.r.use(self.db)
-    discard waitFor self.r.tableCreate(self.table).run()
-    discard waitFor self.r.table(self.table).insert(
-      [&*{"name": "Iron Man", "age": 30},
-      &*{"name": "Spider Man", "age": 23},
-      &*{"name": "Batman", "age": 25}]
-    ).run()
+discard r.dbCreate(db).run()
+r.use(db)
+discard r.tableCreate(table).run()
+discard r.table(table).insert([
+  &*{"name": "Iron Man", "age": 30},
+  &*{"name": "Spider Man", "age": 23},
+  &*{"name": "Batman", "age": 25
+}]).run()
+
+var res: JsonNode
+
+suite "lambda tests":
+  test "map":
+    res = r.expr(&*[1, 2, 3, 4, 5]).map((val: RqlQuery) => val * val).run()
+    check(res == %*[1, 4, 9, 16, 25])
+
+  test "map field":
+    res = r.table(table).map((x: RqlQuery) => x["age"]).run()
+    check(res.elems.len == 3)
+    check(res[0].num.int in @[30, 23, 25])
+    check(res[1].num.int in @[30, 23, 25])
+    check(res[2].num.int in @[30, 23, 25])
+
+  test "map with expression":
+    checkpoint("lambda with add expression")
+    res = r.table(table).map((x: RqlQuery) => x["age"] + 20).run()
+    check(res.elems.len == 3)
+    check(res[0].num.int in @[50, 43, 45])
+    check(res[1].num.int in @[50, 43, 45])
+    check(res[2].num.int in @[50, 43, 45])
+
+    checkpoint("lambda with comparision expression")
+    res = r.table(table).map((x: RqlQuery) => x["age"] >= 30).run()
+    check(res.elems.len == 3)
 
 
-  method tearDown()=
-    discard waitFor self.r.dbDrop(self.db).run()
-    self.r.close()
-
-  method testMap()=
-    let res = waitFor self.r.expr(&*[1, 2, 3, 4, 5]).map((val: RqlQuery) => val * val).run()
-    self.check(res == %*[1, 4, 9, 16, 25])
-
-  method testMapField()=
-    let ages = waitFor self.r.table(self.table).map((x: RqlQuery) => x["age"]).run()
-    self.check(ages.elems.len == 3)
-    self.check(ages[0].num.int in @[30, 23, 25])
-    self.check(ages[1].num.int in @[30, 23, 25])
-    self.check(ages[2].num.int in @[30, 23, 25])
-
-  method testMapWithExpression()=
-    let ages = waitFor self.r.table(self.table).map((x: RqlQuery) => x["age"] + 20).run()
-    self.check(ages.elems.len == 3)
-    self.check(ages[0].num.int in @[50, 43, 45])
-    self.check(ages[1].num.int in @[50, 43, 45])
-    self.check(ages[2].num.int in @[50, 43, 45])
-
-    let res = waitFor self.r.table(self.table).map((x: RqlQuery) => x["age"] >= 30).run()
-    self.check(res.elems.len == 3)
-
-when isMainModule:
-  runTests()
+discard r.dbDrop(db).run()
+r.close()

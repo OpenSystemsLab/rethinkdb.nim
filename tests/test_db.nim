@@ -1,42 +1,32 @@
-import einheit
-import asyncdispatch
-import json
-import math
-
+import unittest, json, math
 import ../rethinkdb
 
-testSuite DatabaseManipulationTests:
-  var
-    r: RethinkClient
-    db: string
+randomize()
 
-  method setup()=
-    self.r = newRethinkClient()
-    waitFor self.r.connect()
-    self.r.repl()
-    randomize()
-    self.db = "test_db_" & $random(9999)
+let db = "test_db_" & $random(9999)
+var ret: JsonNode
+let r = newRethinkClient()
+r.connect()
+r.repl()
 
 
-  method tearDown()=
-    self.r.close()
+suite "database manipulation tests":
+  test "create database":
+    ret = r.dbCreate(db).run()
+    check(ret["dbs_created"].num == 1)
 
-  method testCreateDatabase()=
-    let res = waitFor self.r.dbCreate(self.db).run()
-    self.check(res["dbs_created"].num == 1)
-
-  method testListDatabase()=
-    let res = waitFor self.r.dbList().run()
+  test "list database":
+    ret = r.dbList().run()
     var found = false
-    for x in res.items():
-      if x.str == self.db:
+    for x in ret.items():
+      if x.str == db:
         found = true
         break
-    self.check(found)
+    check(found)
 
-  method testDropDatabase()=
-    let res = waitFor self.r.dbDrop(self.db).run()
-    self.check(res["dbs_dropped"].num == 1)
+  test "drop database":
+    ret = r.dbDrop(db).run()
+    check(ret["dbs_dropped"].num == 1)
 
-when isMainModule:
-  runTests()
+
+r.close()

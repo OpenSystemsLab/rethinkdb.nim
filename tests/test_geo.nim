@@ -1,49 +1,45 @@
-import einheit
-import asyncdispatch
-import json
-import math
-
+import unittest, json, math
 import ../rethinkdb
 
-testSuite GeospatialTests:
-  var
-    r: RethinkClient
-    db: string
+let r = newRethinkClient()
+r.connect()
+r.repl()
+randomize()
+let db = "test_geo_" & $random(9999)
+let table = "nodes"
 
-  method setup()=
-    self.r = newRethinkClient()
-    waitFor self.r.connect()
-    self.r.repl()
+discard r.dbCreate(db).run()
+r.use(db)
+discard r.tableCreate(table).run()
+discard r.table(table).indexCreate("loc", geo = true).run()
+discard r.table(table).indexWait("loc").run()
 
-  method tearDown()=
-    self.r.close()
-
-  method estPoint()=
-    var point1 = self.r.point(-122.423246,37.779388)
-    var point2 = self.r.point(-117.220406,32.719464)
+suite "geospatial tests":
+  test "point":
+    var point1 = r.point(-122.423246,37.779388)
+    var point2 = r.point(-117.220406,32.719464)
     #var c1 = self.r.circle([-122.423246, 37.779388], 1000).run()
 
-    #var distance = waitFor self.r.distance(point1, point2, unit="km").run()
-    #assert distance.fnum.int == 734
+    var distance = r.distance(point1, point2, unit="km").run()
+    check(distance.fnum.int == 734)
 
-    #distance = waitFor self.r.distance(point1, point2).run()
-    #assert distance.fnum.int == 734125
+    distance = r.distance(point1, point2).run()
+    check(distance.fnum.int == 734125)
 
-    #discard waitFor self.r.table("nodes").insert([
-    #  &*{"id": 1, "loc": point1},
-    #  &*{"id": 2, "loc": point2}]).run()
+    discard r.table("nodes").insert([
+      &*{"id": 1, "loc": point1},
+      &*{"id": 2, "loc": point2}]).run()
 
-  method testJson()=
-    var p1 = waitFor self.r.geojson(r"{""type"": ""Point"", ""coordinates"":[-122.423246, 37.779388]}").run()
-    var p2 = waitFor self.r.table("nodes").get(1)["loc"].to_geojson.run()
+  test "json":
+    var p1 = r.geojson(r"{""type"": ""Point"", ""coordinates"":[-122.423246, 37.779388]}").run()
+    var p2 = r.table(table).get(1)["loc"].to_geojson.run()
 
-  method testIntersecting()=
-    var  circle1 = self.r.circle([-117.220406,32.719464], 10, unit="mi")
-    discard waitFor self.r.table("nodes").getIntersecting(circle1, index="loc").run()
+  test "intersecting":
+    var circle1 = r.circle([-117.220406,32.719464], 10, unit="mi")
+    discard r.table(table).getIntersecting(circle1, index="loc").run()
 
-  method testLine()=
-    var line = waitFor self.r.line([-122.423246,37.779388], [-121.886420,37.329898]).run()
+  test "line":
+    var line = r.line([-122.423246,37.779388], [-121.886420,37.329898]).run()
 
-
-when isMainModule:
-  runTests()
+discard r.dbDrop(db).run()
+r.close()
