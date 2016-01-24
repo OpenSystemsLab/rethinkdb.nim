@@ -2,18 +2,6 @@
 # Document manipulation
 #--------------------
 
-proc row*[T](r: T): RqlRow =
-  ## Returns the currently visited document
-  ##
-  ## This proc must be called along with `[]` operator
-  newQueryAst(BRACKET)
-  result.firstVar = true
-
-  when r is RethinkClient:
-    result.addArg(newQuery(IMPLICIT_VAR))
-  else:
-    result.addArg(r)
-
 proc pluck*[T](r: T, n: varargs[string]): RqlQuery =
   newQueryAst(PLUCK, r)
   for x in n:
@@ -34,10 +22,10 @@ proc merge*[T, U](r: T, n: varargs[proc(x: RqlQuery): U]): RqlQuery =
   for f in n:
     result.addArg(funcWrap(f))
 
-proc append*[T](r: RqlRow, t: T): RqlQuery =
+proc append*[T](r: RqlQuery, t: T): RqlQuery =
   newQueryAst(APPEND, r, t)
 
-proc prepend*[T](r: RqlRow, t: T): RqlQuery =
+proc prepend*[T](r: RqlQuery, t: T): RqlQuery =
   newQueryAst(PREPEND, r, t)
 
 proc difference*[T](r: RqlQuery, n: openArray[T]): RqlQuery =

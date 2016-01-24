@@ -1,4 +1,4 @@
-import macros, json, tables, typetraits, net
+import macros, json, tables, net
 
 import types, ql2, datum
 

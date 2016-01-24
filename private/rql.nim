@@ -17,11 +17,13 @@ type
     rdb: RqlDatabase
     table: string
 
-  RqlRow* = ref object of RqlQuery
-    firstVar: bool # indicate this is the first selector
+var defaultClient {.threadvar.}: RethinkClient
 
-var
-  defaultClient {.threadvar.}: RethinkClient
+
+proc row*[T: RethinkClient|RqlQuery](r: T): RqlQuery =
+  new(result)
+  #raise newException(RqlDriverError, "'r.row' is not callable, use 'r.row[...]' instead")
+
 
 proc repl*(r: RethinkClient) =
   defaultClient = r
@@ -252,25 +254,14 @@ proc makeFunc*[T](f: T): RqlQuery =
   result.addArg(&[varId])
   result.addArg(f)
 
-proc `[]`*[T: RethinkClient|RqlQuery|RqlTable](r: T, s: string): auto =
+proc `[]`*(r: RqlQuery, s: auto): RqlQuery =
   ## Operator for create row's fields chain
   ##
   ## Example:
   ##
   ## .. code-block:: nim
   ##  r.row["age"]
-  when r is RqlRow:
-    if r.firstVar:
-      r.addArg(newDatum(s))
-      r.firstVar = false
-      result = r
-    else:
-      newQueryAst(BRACKET, r, s)
-  #when r is RqlVariable:
-  #  result = r.row[s]
-  else:
-    result = r.row[s]
-
+  newQueryAst(BRACKET, r, s)
 
 include queries/db
 include queries/table

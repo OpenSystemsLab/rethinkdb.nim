@@ -52,7 +52,7 @@ proc error*(r: RethinkClient, msg: string): RqlQuery =
 proc default*[T](r: RqlQuery, t: T): RqlQuery =
   newQueryAst(DEFAULT, r, t)
 
-proc expr*[T, U](r: T, x: U): auto =
+proc expr*[T: RethinkClient|RqlQuery](r: T, x: auto): RqlQuery =
   ## Construct a ReQL JSON object from a native object
 
   #TODO does this really works as expected

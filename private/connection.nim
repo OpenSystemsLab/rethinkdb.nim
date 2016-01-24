@@ -210,7 +210,7 @@ when not compileOption("threads"):
     let token = header[0].getUQuad
     let length = header[1].getInt
     let buf = await r.sock.recv(length)
-    #L.log(lvlDebug, "Response: [$#, $#, $#]" % [$token, $length, buf])
+    L.log(lvlDebug, "Response: [$#, $#, $#]" % [$token, $length, buf])
 
     result = newResponse(buf, token)
 
