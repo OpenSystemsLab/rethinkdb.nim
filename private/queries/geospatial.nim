@@ -1,6 +1,6 @@
 import json
 
-proc circle*[T, U: array[2, float]|RqlQuery](r: T, loc: U, radius: int, numVertices = 32, geoSystem = "", unit = "", fill = true): RqlQuery =
+proc circle*(r: RethinkClient, loc: auto, radius: int, numVertices = 32, geoSystem = "", unit = "", fill = true): RqlQuery =
   newQueryAst(CIRCLE, loc, radius)
 
   if numVertices != 32:
@@ -15,16 +15,7 @@ proc circle*[T, U: array[2, float]|RqlQuery](r: T, loc: U, radius: int, numVerti
   if not fill:
     result.setOption("fill", false)
 
-proc distance*[T, U: array[2, float]|RqlQuery](r: T, p1, p2: U, geoSystem = "", unit = ""): RqlQuery =
-  newQueryAst(DISTANCE, p1, p2)
-
-  if geoSystem != "" and geoSystem != "WGS84":
-    result.setOption("geo_system", geoSystem)
-
-  if unit != "":
-    result.setOption("unit", unit)
-
-proc distance*[T](r: T, p1, p2: array[0..1, float], geoSystem = "", unit = ""): RqlQuery =
+proc distance*[T: RethinkClient|RqlQuery](r: T, p1, p2: auto, geoSystem = "", unit = ""): RqlQuery =
   newQueryAst(DISTANCE, p1, p2)
 
   if geoSystem != "" and geoSystem != "WGS84":
@@ -74,7 +65,7 @@ proc includes*[T](r: T, geometry: RqlQuery): RqlQuery =
 proc intersecs*[T](r: T, geometry: RqlQuery): RqlQuery =
   newQueryAst(INTERSECTS, geometry)
 
-proc line*[T, U: array[2, float]|RqlQuery](r: T, geometries: varargs[U]): RqlQuery =
+proc line*[T: array[2, float]|RqlQuery](r: RethinkClient, geometries: varargs[T]): RqlQuery =
   newQueryAst(LINE)
   for x in geometries:
     result.addArg(x)
