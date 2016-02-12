@@ -1,11 +1,11 @@
 [Package]
 name          = "rethinkdb"
-version       = "0.1.5"
+version       = "0.1.6"
 author        = "Huy Doan"
 description   = "RethinkDB driver for Nim"
 license       = "MIT"
 
-skipDirs      = "tests"
+skipDirs      = "tests bench"
 
 [Deps]
 Requires: "nim >= 0.11.2"
