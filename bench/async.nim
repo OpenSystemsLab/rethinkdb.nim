@@ -11,5 +11,6 @@ bench(async, m):
     future.callback =
         proc () =
           discard future.read()
+    poll()
   r.close()
 runBenchmarks()
