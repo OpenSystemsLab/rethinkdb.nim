@@ -44,6 +44,5 @@ suite "lambda tests":
     res = r.table(table).map((x: RqlQuery) => x["age"] >= 30).run()
     check(res.elems.len == 3)
 
-
 discard r.dbDrop(db).run()
 r.close()

@@ -48,11 +48,9 @@ type
     kind*: QueryType
     term*: RqlQuery
     options*: TableRef[string, MutableDatum]
-
-var
-  L {.threadvar.}: ConsoleLogger
-
-L = newConsoleLogger()
+when defined(debug):
+  var L {.threadvar.}: ConsoleLogger
+  L = newConsoleLogger()
 
 proc `$`*(q: Query): string =
   var j = newJArray()
@@ -123,7 +121,8 @@ proc newRethinkClient*(address = "127.0.0.1", port = Port(28015), auth = "", db 
     result.use(db)
 when not compileOption("threads"):
   proc handshake(r: RethinkClient) {.async.} =
-    L.log(lvlDebug, "Preparing handshake...")
+    when defined(debug):
+      L.log(lvlDebug, "Preparing handshake...")
     var data: string
     if r.auth.len > 0:
       data = pack("<ii$#si" % [$r.auth.len], HandshakeV0_4, r.auth.len.int32, r.auth, HandshakeJSON)
@@ -134,11 +133,13 @@ when not compileOption("threads"):
     data = await r.sock.recv(BUFFER_SIZE)
     if data[0..6] != "SUCCESS":
       raise newException(RqlDriverError, data)
-    L.log(lvlDebug, "Handshake success...")
+    when defined(debug):
+      L.log(lvlDebug, "Handshake success...")
 else:
 
   proc handshake(r: RethinkClient) =
-    L.log(lvlDebug, "Preparing handshake...")
+    when defined(debug):
+      L.log(lvlDebug, "Preparing handshake...")
     var data: string
     if r.auth.len > 0:
       data = pack("<ii$#si" % [$r.auth.len], HandshakeV0_4, r.auth.len.int32, r.auth, HandshakeJSON)
@@ -150,7 +151,8 @@ else:
 
     if buf[0..6] != "SUCCESS":
       raise newException(RqlDriverError, buf)
-    L.log(lvlDebug, "Handshake success...")
+    when defined(debug):
+      L.log(lvlDebug, "Handshake success...")
 
 
 proc close*(r: RethinkClient) =
@@ -160,14 +162,16 @@ proc close*(r: RethinkClient) =
   else:
     r.sock.close()
   r.sockConnected = false
-  L.log(lvlDebug, "Disconnected from server...")
+  when defined(debug):
+    L.log(lvlDebug, "Disconnected from server...")
 
 proc isConnected*(r: RethinkClient): bool {.noSideEffect, inline.} =
   r.sockConnected
 
 when not compileOption("threads"):
   proc runQuery(r: RethinkClient, q: Query, token: uint64 = 0) {.async.} =
-    L.log(lvlDebug, "Sending query: $#" % [$q])
+    when defined(debug):
+      L.log(lvlDebug, "Sending query: $#" % [$q])
     var token = token
     if token == 0:
       token = r.nextToken
@@ -195,7 +199,8 @@ when not compileOption("threads"):
 
   proc continueQuery*(r: RethinkClient, token: uint64 = 0) {.async.} =
     ## Send CONTINUE query
-    L.log(lvlDebug, "Sending continue query")
+    when defined(debug):
+      L.log(lvlDebug, "Sending continue query")
     var q: Query
     new(q)
     q.kind = CONTINUE
@@ -210,14 +215,16 @@ when not compileOption("threads"):
     let token = header[0].getUQuad
     let length = header[1].getInt
     let buf = await r.sock.recv(length)
-    L.log(lvlDebug, "Response: [$#, $#, $#]" % [$token, $length, buf])
+    when defined(debug):
+      L.log(lvlDebug, "Response: [$#, $#, $#]" % [$token, $length, buf])
 
     result = newResponse(buf, token)
 
   proc connect*(r: RethinkClient) {.async.} =
     ## Create a new connection to the database server
     if not r.isConnected:
-      L.log(lvlDebug, "Connecting to server at $#:$#..." % [r.address, $r.port])
+      when defined(debug):
+        L.log(lvlDebug, "Connecting to server at $#:$#..." % [r.address, $r.port])
       await r.sock.connect(r.address, r.port)
       r.sockConnected = true
       await r.handshake()
@@ -229,7 +236,8 @@ when not compileOption("threads"):
 
 else:
   proc runQuery(r: RethinkClient, q: Query, token: uint64 = 0): int =
-    L.log(lvlDebug, "Sending query: $#" % [$q])
+    when defined(debug):
+      L.log(lvlDebug, "Sending query: $#" % [$q])
     var token = token
     if token == 0:
       token = r.nextToken
@@ -257,7 +265,8 @@ else:
 
   proc continueQuery*(r: RethinkClient, token: uint64 = 0) =
     ## Send CONTINUE query
-    L.log(lvlDebug, "Sending continue query")
+    when defined(debug):
+      L.log(lvlDebug, "Sending continue query")
     var q: Query
     new(q)
     q.kind = CONTINUE
@@ -276,14 +285,16 @@ else:
     ret = r.sock.recv(buf, length)
     if ret <= 0:
       raise newException(RqlDriverError, "Unable to read packet body")
-    L.log(lvlDebug, "Response: [$#, $#, $#]" % [$token, $length, buf])
+    when defined(debug):
+      L.log(lvlDebug, "Response: [$#, $#, $#]" % [$token, $length, buf])
 
     newResponse(buf, token)
 
   proc connect*(r: RethinkClient) =
     ## Create a new connection to the database server
     if not r.isConnected:
-      L.log(lvlDebug, "Connecting to server at $#:$#..." % [r.address, $r.port])
+      when defined(debug):
+        L.log(lvlDebug, "Connecting to server at $#:$#..." % [r.address, $r.port])
       r.sock.connect(r.address, r.port)
       r.sockConnected = true
       r.handshake()
