@@ -52,7 +52,7 @@ when defined(debug):
   var L {.threadvar.}: ConsoleLogger
   L = newConsoleLogger()
 
-proc `$`*(q: Query): string =
+proc `$`*(q: Query): string {.thread.} =
   var j = newJArray()
   j.add(newJInt(q.kind.ord))
 
@@ -235,7 +235,7 @@ when not compileOption("threads"):
     await r.connect()
 
 else:
-  proc runQuery(r: RethinkClient, q: Query, token: uint64 = 0): int =
+  proc runQuery(r: RethinkClient, q: Query, token: uint64 = 0): int {.thread.} =
     when defined(debug):
       L.log(lvlDebug, "Sending query: $#" % [$q])
     var token = token
