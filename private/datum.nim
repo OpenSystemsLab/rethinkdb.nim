@@ -6,9 +6,9 @@ import base64
 import types
 import ql2
 
-proc toJson*(r: RqlQuery): JsonNode
+proc toJson*(r: RqlQuery): JsonNode {.thread.}
 
-proc `%`*(m: MutableDatum): JsonNode =
+proc `%`*(m: MutableDatum): JsonNode {.thread.} =
   if m.isNil:
     return newJNull()
   case m.kind
