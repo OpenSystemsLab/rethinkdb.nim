@@ -30,7 +30,7 @@ proc `%`*(m: MutableDatum): JsonNode {.thread.} =
   of R_OBJECT:
     result = newJObject()
     for k, v in m.obj.pairs:
-      result.fields.add((key: k, val: %v))
+      result.add(k, %v)
   of R_BINARY:
     result = %*{"$reql_type$": "BINARY", "data": m.binary.data}
   of R_TIME:
@@ -64,7 +64,7 @@ proc toJson*(r: RqlQuery): JsonNode =
     if not r.optargs.isNil and r.optargs.len > 0:
       var obj = newJObject()
       for k, v in r.optargs.pairs:
-        obj.fields.add((key: k, val: v.toJson))
+        obj.add(k, v.toJson)
 
       result.add(obj)
 
@@ -189,7 +189,7 @@ proc `&`*(node: JsonNode): MutableDatum =
   of JObject:
     result.kind = R_OBJECT
     result.obj = newTable[string, MutableDatum]()
-    for key, item in items(node.fields):
+    for key, item in node:
       result.obj[key] = &item
   of JArray:
     result.kind = R_ARRAY

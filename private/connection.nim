@@ -80,9 +80,9 @@ proc newResponse(s: string, t: uint64 = 0): Response =
   result.kind = (ResponseType)json["t"].num
   result.token = t
   result.data = json["r"]
-  if not json["b"].isNil:
+  if json.hasKey("b"):
     result.backtrace = json["b"]
-  if not json["p"].isNil:
+  if json.hasKey("p"):
     result.profile = json["p"]
 
 proc nextToken(r: RethinkClient): uint64 =
