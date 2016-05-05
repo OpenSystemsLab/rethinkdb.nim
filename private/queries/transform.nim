@@ -1,6 +1,19 @@
 #--------------------
 # Transformations
 #--------------------
+
+proc asc*[T: RethinkClient|RqlQuery](r: T, key: string): RqlQuery =
+  when r is RethinkClient:
+    newQueryAst(ASC, key)
+  else:
+    newQueryAst(ASC, r, key)
+
+proc desc*[T: RethinkClient|RqlQuery](r: T, key: string): RqlQuery =
+  when r is RethinkClient:
+    newQueryAst(DESC, key)
+  else:
+    newQueryAst(DESC, r, key)
+
 proc map*[U](r: RqlQuery, f: proc(x: RqlQuery): U): RqlQuery =
   ## Transform each element of one or more sequences by applying a mapping function to them
   newQueryAst(MAP, r)
@@ -28,6 +41,9 @@ proc orderBy*[T: RqlQuery|string](r: RqlQuery, n: openArray[T], index: RqlQuery 
 
 proc orderBy*[T: RqlQuery|string](r: RqlQuery, n: openArray[T], index = ""): RqlQuery {.inline.} =
   r.orderBy(n, newDatum(index))
+
+proc orderBy*[T: RqlQuery|string](r: RqlQuery, n: T, index: T = nil): RqlQuery =
+  r.orderBy([n], index)
 
 proc skip*(r: RqlQuery, n: int): RqlQuery =
   newQueryAst(SKIP, r, n)
