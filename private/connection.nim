@@ -1,4 +1,4 @@
-import nativesockets, strutils, logging, json, struct, tables
+import nativesockets, strutils, logging, sam, struct, tables
 
 when not compileOption("threads"):
   import asyncdispatch
@@ -53,16 +53,10 @@ when defined(debug):
   L = newConsoleLogger()
 
 proc `$`*(q: Query): string =
-  var j = newJArray()
-  j.add(newJInt(q.kind.ord))
-
   if q.kind == START:
-    j.add(q.term.toJson)
-    var opts = newJObject()
-    for k, v in q.options.pairs():
-        opts.add(k, %v)
-    j.add(opts)
-  result = $j
+    result = $$(q.kind.ord, q.term.toJson, q.options)
+  else:
+    result = $$(q.kind.ord)
 
 proc `$`*(r: Response): string =
   var j = newJArray()
