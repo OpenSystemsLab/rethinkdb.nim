@@ -1,7 +1,6 @@
 #--------------------
 # Selecting data
 #--------------------
-
 proc db*(r: RethinkClient, db: string): RqlDatabase =
   ## Reference a database.
   newQueryAst(DB, db)
@@ -16,6 +15,7 @@ proc table*[T](r: T, t: string): RqlTable =
 proc get*[T: int|string](r: RqlTable, t: T): RqlQuery =
   ## Get a document by primary key
   newQueryAst(GET, r, t)
+
 
 proc getAll*[T: int|string](r: RqlTable, args: openArray[T], index = ""): RqlQuery =
   ## Get all documents where the given value matches the value of the requested index
@@ -37,6 +37,7 @@ proc getAll*[T: int|string](r: RqlTable, args: openArray[T], index = ""): RqlQue
 proc between*(r: RqlTable, lowerKey, upperKey: MutableDatum, index = "id", leftBound = "closed", rightBound = "open"): RqlQuery =
   ## Get all documents between two keys
   newQueryAst(BETWEEN, r, lowerKey, upperKey)
+  
   if index != "id":
     result.setOption("index", index)
   if leftBound != "closed":
@@ -57,3 +58,4 @@ proc filter*[T](r: RqlQuery, f: proc(x: RqlQuery): T, default = false): RqlQuery
   result.addArg(funcWrap(f))
   if default:
     result.setOption("default", true)
+

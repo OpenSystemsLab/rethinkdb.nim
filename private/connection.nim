@@ -136,7 +136,6 @@ when not compileOption("threads"):
     when defined(debug):
       L.log(lvlDebug, "Handshake success...")
 else:
-
   proc handshake(r: RethinkClient) =
     when defined(debug):
       L.log(lvlDebug, "Preparing handshake...")
@@ -154,6 +153,25 @@ else:
     when defined(debug):
       L.log(lvlDebug, "Handshake success...")
 
+
+proc handshake1_0(r: RethinkClient) =
+    when defined(debug):
+      L.log(lvlDebug, "Preparing handshake...")
+    var data = pack("<i", HandshakeV1_0)
+    discard r.sock.send(data)
+
+    let buf = r.sock.readUntil('\0')
+    if buf[0..4] == "ERROR":
+      raise newException(RqlDriverError, buf)
+    try:
+      let result = parseJson(buf & "AA")
+      if not result.hasKey("success") or result["success"].bval != true:
+        raise newException(RqlDriverError, "Handshake failed with error: " & buf)
+    except JsonParsingError:
+      raise newException(RqlDriverError, "Can not parse response from server: " & buf)
+
+    when defined(debug):
+      L.log(lvlDebug, "Handshake success...")
 
 proc close*(r: RethinkClient) =
   ## Close an open connection
@@ -297,7 +315,7 @@ else:
         L.log(lvlDebug, "Connecting to server at $#:$#..." % [r.address, $r.port])
       r.sock.connect(r.address, r.port)
       r.sockConnected = true
-      r.handshake()
+      r.handshake1_0()
 
   proc reconnect*(r: RethinkClient) =
     ## Close and reopen a connection

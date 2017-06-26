@@ -39,7 +39,7 @@ proc `%`*(m: MutableDatum): JsonNode {.thread.} =
         "+00:00"
       else:
         m.time.format("zzz")
-    result = %*{"$reql_type$": "TIME", "epoch_time": m.time.timeInfoToTime.toSeconds(), "timezone": tz}
+    result = %*{"$reql_type$": "TIME", "epoch_time": m.time.toTime.toSeconds(), "timezone": tz}
   of R_TERM:
     result = newJArray()
     result.add(newJInt(m.term.tt.ord))
@@ -69,7 +69,7 @@ proc toJson*(r: RqlQuery): JsonNode =
       result.add(obj)
 
 
-template extract*(m: MutableDatum): stmt {.immediate.} =
+template extract*(m: MutableDatum): untyped =
   case m.kind
   of R_STRING:
     m.str
@@ -218,7 +218,7 @@ proc toDatum(x: NimNode): NimNode {.compiletime.} =
 
   result = prefix(result, "&")
 
-macro `&*`*(x: expr): expr =
+macro `&*`*(x: untyped): untyped =
   ## Convert an expression to a MutableDatum directly, without having to specify
   ## `%` for every element.
   result = toDatum(x)

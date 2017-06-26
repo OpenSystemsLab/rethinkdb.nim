@@ -1,4 +1,4 @@
-import private/datum, private/types, private/connection, private/rql, private/utils
+import private/[datum,types, connection, rql, utils]
 
 export datum
 export types

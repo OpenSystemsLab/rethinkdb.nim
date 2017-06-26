@@ -263,6 +263,7 @@ proc `[]`*(r: RqlQuery, s: auto): RqlQuery =
   ##  r.row["age"]
   newQueryAst(BRACKET, r, s)
 
+
 include queries/db
 include queries/table
 include queries/writing

@@ -2,8 +2,8 @@ import macros, json, tables, net
 
 import types, ql2, datum
 
-macro newQueryAst*(n: varargs[expr]): stmt =
-  result = newNimNode(nnkStmtList, n)
+macro newQueryAst*(n: varargs[untyped]): untyped =
+  result = newNimNode(nnkStmtList)
   # new(result)
   result.add(newCall("new", ident("result")))
 
@@ -11,7 +11,7 @@ macro newQueryAst*(n: varargs[expr]): stmt =
   result.add(
     newAssignment(
       newDotExpr(ident("result"), ident("tt")),
-      n[0]
+      newIdentNode($n[0])
     )
   )
 
@@ -36,9 +36,9 @@ macro newQueryAst*(n: varargs[expr]): stmt =
   )
 
   if n.len > 1:
-    for i in 1..n.len-1:
-      result.add(newCall("addArg", ident("result"), n[i]))
-
+    for i in 1..<n.len:
+      result.add(newCall("addArg", ident("result"), newIdentNode($n[i])))
+  
 proc newQuery*(tt: TermType): RqlQuery {.inline.} =
   new(result)
   result.tt = tt
