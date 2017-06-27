@@ -2,7 +2,7 @@
 # Writing data
 #--------------------
 
-proc insert*[T: MutableDatum|openArray[MutableDatum]](r: RqlTable, data: T, durability="hard", returnChanges=false, conflict="error"): RqlQuery =
+proc insert*[T: MutableDatum|openArray[MutableDatum]](r: RqlQuery, data: T, durability="hard", returnChanges=false, conflict="error"): RqlQuery =
   ## Insert documents into a table. Accepts a single document or an array of documents
   newQueryAst(INSERT, r, data)
 

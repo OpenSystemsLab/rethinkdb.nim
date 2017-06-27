@@ -1,4 +1,4 @@
-import nativesockets, strutils, logging, json, struct, tables
+import asyncnet, strutils, logging, json, struct, tables
 
 when not compileOption("threads"):
   import asyncdispatch
@@ -17,7 +17,7 @@ when not compileOption("threads"):
       port: Port
       auth: string
       options: TableRef[string, MutableDatum]
-      sock: AsyncFD
+      sock: AsyncSocket
       sockConnected: bool
       queryToken: uint64
 else:
@@ -75,7 +75,7 @@ proc `$`*(r: Response): string =
   result = $j
 
 proc newResponse(s: string, t: uint64 = 0): Response =
-  new(result)
+  result = new(Response)
   let json = parseJson(s)
   result.kind = (ResponseType)json["t"].num
   result.token = t
@@ -104,14 +104,13 @@ proc use*(r: RethinkClient, s: string) =
 proc newRethinkClient*(address = "127.0.0.1", port = Port(28015), auth = "", db = ""): RethinkClient =
   ## Init new client instance
   assert address != ""
-  assert port != Port(0)
-  new(result)
+  result = new(RethinkClient)
   result.address = address
   result.port = port
   result.auth = auth
   result.options = newTable[string, MutableDatum]()
   when not compileOption("threads"):
-    result.sock = newAsyncNativeSocket()
+    result.sock = newAsyncSocket()
   else:
     result.sock = newSocket()
   result.sockConnected = false
@@ -153,32 +152,9 @@ else:
     when defined(debug):
       L.log(lvlDebug, "Handshake success...")
 
-
-proc handshake1_0(r: RethinkClient) =
-    when defined(debug):
-      L.log(lvlDebug, "Preparing handshake...")
-    var data = pack("<i", HandshakeV1_0)
-    discard r.sock.send(data)
-
-    let buf = r.sock.readUntil('\0')
-    if buf[0..4] == "ERROR":
-      raise newException(RqlDriverError, buf)
-    try:
-      let result = parseJson(buf & "AA")
-      if not result.hasKey("success") or result["success"].bval != true:
-        raise newException(RqlDriverError, "Handshake failed with error: " & buf)
-    except JsonParsingError:
-      raise newException(RqlDriverError, "Can not parse response from server: " & buf)
-
-    when defined(debug):
-      L.log(lvlDebug, "Handshake success...")
-
 proc close*(r: RethinkClient) =
   ## Close an open connection
-  when not compileOption("threads"):
-    r.sock.closeSocket()
-  else:
-    r.sock.close()
+  r.sock.close()
   r.sockConnected = false
   when defined(debug):
     L.log(lvlDebug, "Disconnected from server...")
@@ -200,8 +176,7 @@ when not compileOption("threads"):
 
   proc startQuery*(r: RethinkClient, t: RqlQuery, options: TableRef[string, MutableDatum] = nil) {.async.} =
     ## Send START query
-    var q: Query
-    new(q)
+    var q = new(Query)
     q.kind = START
     q.term = t
     q.options = newTable[string, MutableDatum]()
@@ -219,8 +194,7 @@ when not compileOption("threads"):
     ## Send CONTINUE query
     when defined(debug):
       L.log(lvlDebug, "Sending continue query")
-    var q: Query
-    new(q)
+    var q = new(Query)
     q.kind = CONTINUE
     await r.runQuery(q, token)
 
@@ -238,7 +212,7 @@ when not compileOption("threads"):
 
     result = newResponse(buf, token)
 
-  proc connect*(r: RethinkClient) {.async.} =
+  proc connect*(r: RethinkClient): Future[void] {.async.} =
     ## Create a new connection to the database server
     if not r.isConnected:
       when defined(debug):
@@ -266,8 +240,7 @@ else:
 
   proc startQuery*(r: RethinkClient, t: RqlQuery, options: TableRef[string, MutableDatum] = nil) =
     ## Send START query
-    var q: Query
-    new(q)
+    var q = new(Query)
     q.kind = START
     q.term = t
     q.options = newTable[string, MutableDatum]()
@@ -285,8 +258,7 @@ else:
     ## Send CONTINUE query
     when defined(debug):
       L.log(lvlDebug, "Sending continue query")
-    var q: Query
-    new(q)
+    var q = new(Query)
     q.kind = CONTINUE
     discard r.runQuery(q, token)
 
@@ -315,7 +287,7 @@ else:
         L.log(lvlDebug, "Connecting to server at $#:$#..." % [r.address, $r.port])
       r.sock.connect(r.address, r.port)
       r.sockConnected = true
-      r.handshake1_0()
+      r.handshake()
 
   proc reconnect*(r: RethinkClient) =
     ## Close and reopen a connection

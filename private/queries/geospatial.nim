@@ -37,12 +37,12 @@ proc toGeojson*[T](r: T): RqlQuery =
   #TODO
   newQueryAst(TO_GEOJSON, r)
 
-proc getInterSecting*[T: array[2, float]|RqlQuery](r: RqlTable, geometry: T, index = ""): RqlQuery =
+proc getInterSecting*[T: array[2, float]|RqlQuery](r: RqlQuery, geometry: T, index = ""): RqlQuery =
   newQueryAst(GET_INTERSECTING, r, geometry)
   if index != "":
     result.setOption("index", index)
 
-proc getNearest*[T: array[2, float]|RqlQuery](r: RqlTable, point: T, index = "", maxResults = 100, maxDist = 100_000, unit= "", geoSystem=""): RqlQuery =
+proc getNearest*[T: array[2, float]|RqlQuery](r: RqlQuery, point: T, index = "", maxResults = 100, maxDist = 100_000, unit= "", geoSystem=""): RqlQuery =
   newQueryAst(GET_NEAREST, r, point)
   if index != "":
     result.setOption("index", index)

@@ -4,8 +4,13 @@ import types, ql2, datum
 
 macro newQueryAst*(n: varargs[untyped]): untyped =
   result = newNimNode(nnkStmtList)
-  # new(result)
-  result.add(newCall("new", ident("result")))
+  # result = new(RqlQuery)
+  result.add(
+    newAssignment(
+      ident("result"),
+      newCall("new", ident("RqlQuery"))
+    )
+  )
 
   # result.tt = TermType
   result.add(
@@ -38,7 +43,7 @@ macro newQueryAst*(n: varargs[untyped]): untyped =
   if n.len > 1:
     for i in 1..<n.len:
       result.add(newCall("addArg", ident("result"), newIdentNode($n[i])))
-  
+
 proc newQuery*(tt: TermType): RqlQuery {.inline.} =
   new(result)
   result.tt = tt

@@ -1,5 +1,6 @@
 const
   HandshakeV0_4*: int32 = 0x400c2d20
+  HandshakeV1_0*: int32 = 0x34c2bdc3
   HandshakeJSON*: int32 = 0x7e6970c7
 
 type
@@ -112,7 +113,7 @@ type
     INDEX_CREATE = 75
     INDEX_DROP = 76
     INDEX_LIST = 77
-    GET_ALL = 78
+    GET_ALL_R = 78
     INFO = 79
     PREPEND = 80
     SAMPLE = 81

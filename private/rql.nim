@@ -9,19 +9,11 @@ when not compileOption("threads"):
 export newTable
 export `=>`
 
-type
-  RqlDatabase* = ref object of RqlQuery
-    db: string
-
-  RqlTable* = ref object of RqlQuery
-    rdb: RqlDatabase
-    table: string
-
 var defaultClient {.threadvar.}: RethinkClient
 
 
 proc row*[T: RethinkClient|RqlQuery](r: T): RqlQuery =
-  new(result)
+  result = new(RqlQuery)
   #raise newException(RqlDriverError, "'r.row' is not callable, use 'r.row[...]' instead")
 
 

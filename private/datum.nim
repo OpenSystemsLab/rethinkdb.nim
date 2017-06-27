@@ -91,48 +91,48 @@ template extract*(m: MutableDatum): untyped =
     nil
 
 proc `&`*(s: string): MutableDatum =
-  new(result)
+  result = new(MutableDatum)
   result.kind = R_STRING
   result.str = s
 
 proc `&`*(b: bool): MutableDatum =
-  new(result)
+  result = new(MutableDatum)
   result.kind = R_BOOLEAN
   result.bval = b
 
 proc `&`*(n: float64): MutableDatum =
-  new(result)
+  result = new(MutableDatum)
   result.kind = R_FLOAT
   result.fval = n
 
 proc `&`*(n: int64): MutableDatum =
-  new(result)
+  result = new(MutableDatum)
   result.kind = R_INTEGER
   result.num = n
 
 proc `&`*(a: openArray[MutableDatum]): MutableDatum =
-  new(result)
+  result = new(MutableDatum)
   result.kind = R_ARRAY
   result.arr = @[]
   for x in a:
     result.arr.add(x)
 
 proc `&`*(a: seq[MutableDatum]): MutableDatum =
-  new(result)
+  result = new(MutableDatum)
   result.kind = R_ARRAY
   result.arr = @[]
   for x in a:
     result.arr.add(x)
 
 proc `&`*(o: openArray[tuple[key: string, val: MutableDatum]]): MutableDatum =
-  new(result)
+  result = new(MutableDatum)
   result.kind = R_OBJECT
   result.obj = newTable[string, MutableDatum]()
   for x in o:
     result.obj[x[0]] = x[1]
 
 proc `&`*(o: TableRef[string, MutableDatum]): MutableDatum =
-  new(result)
+  result = new(MutableDatum)
   result.kind = R_OBJECT
   result.obj = o
 
@@ -143,34 +143,34 @@ proc `&`*[T](a: openArray[(string, T)]): MutableDatum =
   &tbl
 
 proc `&`*(b: BinaryData): MutableDatum =
-  new(result)
+  result = new(MutableDatum)
   result.kind = R_BINARY
   result.binary = b
 
 proc `&`*(t: TimeInfo): MutableDatum =
-  new(result)
+  result = new(MutableDatum)
   result.kind = R_TIME
   result.time = t
 
 
 proc newBinary*(s: string): BinaryData =
-  new(result)
+  result = new(BinaryData)
   result.data = base64.encode(s)
 
 proc `&`*[T: int|float|string](a: openArray[T]): MutableDatum =
-  new(result)
+  result = new(MutableDatum)
   result.kind = R_ARRAY
   result.arr = @[]
   for x in a:
     result.arr.add(&x)
 
 proc `&`*(r: RqlQuery): MutableDatum =
-  new(result)
+  result = new(MutableDatum)
   result.kind = R_TERM
   result.term = r
 
 proc `&`*(node: JsonNode): MutableDatum =
-  new(result)
+  result = new(MutableDatum)
   case node.kind
   of JString:
     result.kind = R_STRING

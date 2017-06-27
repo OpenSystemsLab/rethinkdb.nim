@@ -1,23 +1,23 @@
 #--------------------
 # Selecting data
 #--------------------
-proc db*(r: RethinkClient, db: string): RqlDatabase =
+
+proc db*(r: RethinkClient, db: string): RqlQuery =
   ## Reference a database.
-  newQueryAst(DB, db)
+  newQueryAst(DB)
 
-proc table*[T](r: T, t: string): RqlTable =
+proc table*(r: RethinkClient, t: string): RqlQuery =
   ## Select all documents in a table
-  when r is RethinkClient:
-    newQueryAst(TABLE_R, t)
-  else:
-    newQueryAst(TABLE_R, r, t)
+  newQueryAst(TABLE_R, t)
 
-proc get*[T: int|string](r: RqlTable, t: T): RqlQuery =
+proc table*(r: RqlQuery, t: string): RqlQuery =
+  newQueryAst(TABLE_R, r, t)
+
+proc get*[T: int|string](r: RqlQuery, t: T): RqlQuery =
   ## Get a document by primary key
   newQueryAst(GET, r, t)
 
-
-proc getAll*[T: int|string](r: RqlTable, args: openArray[T], index = ""): RqlQuery =
+proc getAll*[T: int|string](r: RqlQuery, args: openArray[T], index = ""): RqlQuery =
   ## Get all documents where the given value matches the value of the requested index
   ##
   ## Example:
@@ -34,7 +34,7 @@ proc getAll*[T: int|string](r: RqlTable, args: openArray[T], index = ""): RqlQue
   if index != "":
     result.setOption("index", index)
 
-proc between*(r: RqlTable, lowerKey, upperKey: MutableDatum, index = "id", leftBound = "closed", rightBound = "open"): RqlQuery =
+proc between*(r: RqlQuery, lowerKey, upperKey: MutableDatum, index = "id", leftBound = "closed", rightBound = "open"): RqlQuery =
   ## Get all documents between two keys
   newQueryAst(BETWEEN, r, lowerKey, upperKey)
   
@@ -58,4 +58,3 @@ proc filter*[T](r: RqlQuery, f: proc(x: RqlQuery): T, default = false): RqlQuery
   result.addArg(funcWrap(f))
   if default:
     result.setOption("default", true)
-
