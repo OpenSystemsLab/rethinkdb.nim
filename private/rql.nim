@@ -3,6 +3,8 @@
 import strutils, json, tables, future
 import ql2, datum, connection,  utils, types
 
+{.deadCodeElim: off.}
+
 when not compileOption("threads"):
   import asyncdispatch
 

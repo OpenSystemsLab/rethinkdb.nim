@@ -8,10 +8,10 @@ proc db*(r: RethinkClient, db: string): RqlQuery =
 
 proc table*(r: RethinkClient, t: string): RqlQuery =
   ## Select all documents in a table
-  newQueryAst(TABLE_R, t)
-
-proc table*(r: RqlQuery, t: string): RqlQuery =
-  newQueryAst(TABLE_R, r, t)
+  when r is RethinkClient:
+    newQueryAst(TABLE_R, t)
+  else:
+    newQueryAst(TABLE_R, r, t)
 
 proc get*[T: int|string](r: RqlQuery, t: T): RqlQuery =
   ## Get a document by primary key

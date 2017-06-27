@@ -12,7 +12,10 @@ macro newQueryAst*(n: varargs[untyped]): untyped =
     )
   )
 
+  echo treeRepr(n)
+
   # result.tt = TermType
+  echo n[0].kind
   result.add(
     newAssignment(
       newDotExpr(ident("result"), ident("tt")),

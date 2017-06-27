@@ -113,7 +113,7 @@ type
     INDEX_CREATE = 75
     INDEX_DROP = 76
     INDEX_LIST = 77
-    GET_ALL_R = 78
+    GET_ALL = 78
     INFO = 79
     PREPEND = 80
     SAMPLE = 81
