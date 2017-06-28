@@ -47,4 +47,5 @@ cache:
 branches:
   except:
     - gh-pages
-
+addons:
+  - rethinkdb: "2.3"
