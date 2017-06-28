@@ -45,6 +45,10 @@ proc orderBy*[T: RqlQuery|string](r: RqlQuery, n: openArray[T], index = ""): Rql
 proc orderBy*[T: RqlQuery|string](r: RqlQuery, n: T, index: T = nil): RqlQuery =
   r.orderBy([n], index)
 
+proc orderByIndex*[T: RqlQuery|string](r: RqlQuery, index: T): RqlQuery =
+  NEW_QUERY(ORDER_BY, r)
+  result.setOption("index", index)
+  
 proc skip*(r: RqlQuery, n: int): RqlQuery =
   NEW_QUERY(SKIP, r, n)
 

@@ -27,7 +27,7 @@ when not compileOption("threads"):
             timeFormat = "native", profile = false, durability = "hard", groupFormat = "native",
             noreply = false, db = "", arrayLimit = 100_000, binaryFormat = "native",
             minBatchRows = 8, maxBatchRows = 0, maxBatchBytes = 0, maxBatchSeconds = 0.5,
-            firstBatchScaleDownFactor = 4): Future[JsonNode] {.async.} =
+            firstBatchScaleDownFactor = 4): Future[JsonNode] {.async, discardable.} =
     ## Run a query on a connection, returning a `JsonNode` contains single JSON result or an JsonArray, depending on the query.
     var c = c
     if c.isNil:
@@ -86,13 +86,14 @@ when not compileOption("threads"):
 
     if not noreply:
       var response = await c.readResponse()
-
       case response.kind
       of SUCCESS_ATOM:
         result = response.data[0]
       of WAIT_COMPLETE:
         discard
-      of SUCCESS_PARTIAL, SUCCESS_SEQUENCE:
+      of SUCCESS_SEQUENCE:
+        result = response.data
+      of SUCCESS_PARTIAL:
         result = newJArray()
         result.add(response.data)
         while response.kind == SUCCESS_PARTIAL:
@@ -114,7 +115,7 @@ else:
             timeFormat = "native", profile = false, durability = "hard", groupFormat = "native",
             noreply = false, db = "", arrayLimit = 100_000, binaryFormat = "native",
             minBatchRows = 8, maxBatchRows = 0, maxBatchBytes = 0, maxBatchSeconds = 0.5,
-            firstBatchScAleDownFactor = 4): JsonNode {.thread.} =
+            firstBatchScAleDownFactor = 4): JsonNode {.thread, discardable.} =
     ## Run a query on a connection, returning a `JsonNode` contains single JSON result or an JsonArray, depending on the query.
     var c = c
     if c.isNil:
@@ -174,13 +175,14 @@ else:
     if not noreply:
 
       var response = c.readResponse()
-
       case response.kind
       of SUCCESS_ATOM:
         result = response.data[0]
       of WAIT_COMPLETE:
         discard
-      of SUCCESS_PARTIAL, SUCCESS_SEQUENCE:
+      of SUCCESS_SEQUENCE:
+        result = response.data
+      of SUCCESS_PARTIAL:
         result = newJArray()
         result.add(response.data)
         while response.kind == SUCCESS_PARTIAL:
