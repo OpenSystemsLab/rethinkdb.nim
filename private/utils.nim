@@ -3,31 +3,20 @@ import macros, json, tables, net, asyncdispatch, asyncnet
 import types, ql2, datum
 
 template NEW_QUERY*(t: TermType): untyped =
-  result = new(RqlQuery)
-  result.tt = t
-  result.args = @[]
-  result.optargs = newTable[string, RqlQuery]()
-
+  result = newQuery(t)
 
 template NEW_QUERY*(t: TermType, a1: untyped): untyped =
-  result = new(RqlQuery)
-  result.tt = t
-  result.args = @[]
-  result.optargs = newTable[string, RqlQuery]()
+  result = newQuery(t)
   result.addArg(a1)
 
 template NEW_QUERY*(t: TermType, a1, a2: untyped): untyped =
-  result = new(RqlQuery)
-  result.tt = t
-  result.args = @[]
+  result = newQuery(t)
   result.optargs = newTable[string, RqlQuery]()
   result.addArg(a1)
   result.addArg(a2)
 
 template NEW_QUERY*(t: TermType, a1, a2, a3: untyped): untyped =
-  result = new(RqlQuery)
-  result.tt = t
-  result.args = @[]
+  result = newQuery(t)
   result.optargs = newTable[string, RqlQuery]()
   result.addArg(a1)
   result.addArg(a2)

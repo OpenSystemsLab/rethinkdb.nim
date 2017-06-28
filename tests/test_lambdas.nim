@@ -1,4 +1,4 @@
-import unittest, json, math
+import unittest, json, random
 import ../rethinkdb
 
 let r = newRethinkClient()
