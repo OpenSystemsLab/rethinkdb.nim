@@ -14,13 +14,15 @@ install:
       cd ../
       bin/nim c koch
       ./koch boot -d:release
-      ./koch tools
-
-before_script:
-  - export PATH=`pwd`/Nim/bin:$PATH
-
-script:
-- nimble test
+      ./koch nimble
+      cd ../
 
 addons:
-  - rethinkdb: "2.3"
+  rethinkdb: "2.3.5"
+
+before_script:
+  - export PATH="`pwd`/Nim/bin:$PATH"
+  - nimble install -d -y
+
+script:
+    - nimble test
