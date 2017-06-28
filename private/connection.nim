@@ -126,11 +126,11 @@ when not compileOption("threads"):
     if r.auth.len > 0:
       data = pack("<ii$#si" % [$r.auth.len], HandshakeV0_4, r.auth.len.int32, r.auth, HandshakeJSON)
     else:
-      data = pack("<iii", HandshakeV0_4, 0.int32, HandshakeJSON)
+      data = pack("<iii", HandshakeV0_4, 0, HandshakeJSON)
     await r.sock.send(data)
-
-    data = await r.sock.recv(BUFFER_SIZE)
-    if data[0..6] != "SUCCESS":
+    var buf = await r.sock.readUntil('\0')
+    
+    if buf != "SUCCESS":
       raise newException(RqlDriverError, data)
     when defined(debug):
       L.log(lvlDebug, "Handshake success...")
@@ -142,7 +142,7 @@ else:
     if r.auth.len > 0:
       data = pack("<ii$#si" % [$r.auth.len], HandshakeV0_4, r.auth.len.int32, r.auth, HandshakeJSON)
     else:
-      data = pack("<iii", HandshakeV0_4, 0.int32, HandshakeJSON)
+      data = pack("<iii", HandshakeV0_4, 0, HandshakeJSON)
     r.sock.send(data)
 
     var buf = r.sock.readUntil('\0')
@@ -216,7 +216,7 @@ when not compileOption("threads"):
     ## Create a new connection to the database server
     if not r.isConnected:
       when defined(debug):
-        L.log(lvlDebug, "Connecting to server at $#:$#..." % [r.address, $r.port])
+        L.log(lvlDebug, "Connecting to server at $#:$#..." % [r.address, $r.port.int])
       await r.sock.connect(r.address, r.port)
       r.sockConnected = true
       await r.handshake()

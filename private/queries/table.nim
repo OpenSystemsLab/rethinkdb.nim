@@ -2,20 +2,23 @@
 # Manipulating tables
 #--------------------
 
-proc tableCreate*[T: RethinkClient|RqlQuery](r: T, t: string): RqlQuery =
+proc tableCreate*(r: RethinkClient, t: string): RqlQuery =
   ## Create a table
   #TODO create options
-  when r is RethinkClient:
-    newQueryAst(TABLE_CREATE, t)
-  else:
-    newQueryAst(TABLE_CREATE, r, t)
+  newQueryAst(TABLE_CREATE, t)
 
-proc tableDrop*[T: RethinkClient|RqlQuery](r: T, t: string): RqlQuery =
+proc tableCreate*(r: RqlQuery, t: string): RqlQuery =
+  ## Create a table
+  #TODO create options
+  newQueryAst(TABLE_CREATE, r, t)
+
+proc tableDrop*(r: RethinkClient, t: string): RqlQuery =
   ## Drop a table
-  when r is RethinkClient:
-    newQueryAst(TABLE_DROP, t)
-  else:
-    newQueryAst(TABLE_DROP, r, t)
+  newQueryAst(TABLE_DROP, t)
+
+proc tableDrop*(r: RqlQuery, t: string): RqlQuery =
+  ## Drop a table
+  newQueryAst(TABLE_DROP, r, t)
 
 proc indexCreate*(r: RqlQuery, n: string, f: RqlQuery = nil, multi = false, geo = false): RqlQuery =
   ## Create a new secondary index on a table.

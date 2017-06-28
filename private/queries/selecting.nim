@@ -8,14 +8,18 @@ proc db*(r: RethinkClient, db: string): RqlQuery =
 
 proc table*(r: RethinkClient, t: string): RqlQuery =
   ## Select all documents in a table
-  when r is RethinkClient:
-    newQueryAst(TABLE_R, t)
-  else:
-    newQueryAst(TABLE_R, r, t)
+  newQueryAst(TABLE_R, t)
+  
+proc table*(r: RqlQuery, t: string): RqlQuery =
+  ## Select all documents in a table
+  newQueryAst(TABLE_R, r, t)
 
 proc get*[T: int|string](r: RqlQuery, t: T): RqlQuery =
   ## Get a document by primary key
   newQueryAst(GET, r, t)
+
+proc getAllInner(r: RqlQuery): RqlQuery {.inline.} =
+  newQueryAst(GET_ALL, r)
 
 proc getAll*[T: int|string](r: RqlQuery, args: openArray[T], index = ""): RqlQuery =
   ## Get all documents where the given value matches the value of the requested index
@@ -27,7 +31,8 @@ proc getAll*[T: int|string](r: RqlQuery, args: openArray[T], index = ""): RqlQue
   ##  r.table("posts").getAll([1, 1]).run()
   ##  # with secondary index
   ##  r.table("posts").getAll(["nim", "lang"], "tags").run()
-  newQueryAst(GET_ALL, r)
+  result = getAllInner(r)
+
   for x in args:
     result.addArg(@x)
 

@@ -22,8 +22,12 @@ proc merge*[T, U](r: T, n: varargs[proc(x: RqlQuery): U]): RqlQuery =
   for f in n:
     result.addArg(funcWrap(f))
 
+proc appendInner(r: RqlQuery): RqlQuery {.inline.} =
+  newQueryAst(APPEND, r)
+
 proc append*[T](r: RqlQuery, t: T): RqlQuery =
-  newQueryAst(APPEND, r, t)
+  result = appendInner(r)
+  result.addArg(t)
 
 proc prepend*[T](r: RqlQuery, t: T): RqlQuery =
   newQueryAst(PREPEND, r, t)

@@ -248,6 +248,9 @@ proc makeFunc*[T](f: T): RqlQuery =
   result.addArg(&[varId])
   result.addArg(f)
 
+proc bracketInner(r:  RqlQuery): untyped {.inline.} =
+  newQueryAst(BRACKET, r)
+
 proc `[]`*(r: RqlQuery, s: auto): RqlQuery =
   ## Operator for create row's fields chain
   ##
@@ -255,7 +258,8 @@ proc `[]`*(r: RqlQuery, s: auto): RqlQuery =
   ##
   ## .. code-block:: nim
   ##  r.row["age"]
-  newQueryAst(BRACKET, r, s)
+  result = bracketInner(r)
+  result.addArg(s)
 
 
 include queries/db

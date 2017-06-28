@@ -13,12 +13,16 @@ proc insert*[T: MutableDatum|openArray[MutableDatum]](r: RqlQuery, data: T, dura
   if conflict != "error":
     result.setOption("conflict", conflict)
 
+proc updateInner(r: RqlQuery): RqlQuery {.inline.} =
+  newQueryAst(UPDATE, r)
+
 proc update*[T](r: RqlQuery, data: T, durability="hard", returnChanges=false, nonAtomic=false): RqlQuery =
   ## Insert documents into a table. Accepts a single document or an array of documents
+  result = updateInner(r)
   when data is array:
-    newQueryAst(UPDATE, r, makeFunc(&data))
+    result.addArg(makeFunc(&data))
   else:
-    newQueryAst(UPDATE, r, data)
+    result.addArg(data)
 
   if durability != "hard":
     result.setOption("durability", durability)

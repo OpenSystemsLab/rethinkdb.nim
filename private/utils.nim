@@ -1,4 +1,4 @@
-import macros, json, tables, net
+import macros, json, tables, net, asyncdispatch, asyncnet
 
 import types, ql2, datum
 
@@ -12,10 +12,7 @@ macro newQueryAst*(n: varargs[untyped]): untyped =
     )
   )
 
-  echo treeRepr(n)
-
   # result.tt = TermType
-  echo n[0].kind
   result.add(
     newAssignment(
       newDotExpr(ident("result"), ident("tt")),
@@ -87,10 +84,25 @@ proc readUntil*(s: Socket, delim: char, bufferSize = 12): string =
   while s.recv(addr c, 1) == 1:
     if c == delim:
       break
+    if byteRead >= result.len:
+      setLen(result, result.len + bufferSize)
+
+    result[byteRead] = c
+    inc(byteRead)
+
+proc readUntil*(s: AsyncSocket, delim: char, bufferSize = 12): Future[string] {.async.} =
+  result = newString(bufferSize)
+  var
+    c: char
+    byteRead = 0
+    ret: int
+  while true:
+    ret = await s.recvInto(addr c, 1)
+    if ret != 1 or c == delim:
+      break
 
     if byteRead >= result.len:
       setLen(result, result.len + bufferSize)
 
     result[byteRead] = c
-
     inc(byteRead)

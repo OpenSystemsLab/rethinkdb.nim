@@ -1,9 +1,9 @@
-import unittest, json, math
+import unittest, json, random
 import ../rethinkdb
 
 randomize()
 let db = "test_bracket_" & $random(9999)
-let table = "SuperHeroes"
+let tableName = "SuperHeroes"
 let r = newRethinkClient()
 r.connect()
 r.repl()
@@ -11,8 +11,8 @@ r.repl()
 discard r.dbCreate(db).run()
 r.use(db)
 
-discard r.tableCreate(table).run()
-discard r.table(table).insert([
+discard r.tableCreate(tableName).run()
+discard r.table(tableName).insert([
   &*{"id": 1, "name": "Iron Man", "age": 30},
   &*{"id": 2, "name": "Spider Man", "age": 23},
   &*{"id": 3, "name": "Batman", "age": 25}
@@ -25,7 +25,7 @@ suite "bracket tests":
     check(ret.getNum() == 40)
 
   test "get single field from document":
-    let ret = r.table(table).get(2)["age"].run()
+    let ret = r.table(tableName).get(2)["age"].run()
     check(ret.getNum() == 23)
 
 
