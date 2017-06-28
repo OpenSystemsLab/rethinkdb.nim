@@ -6,15 +6,18 @@ language: c
 
 install:
   - |
-      wget https://nim-lang.org/download/nim-0.17.0.tar.xz
-      tar -xf nim-0.17.0.tar.xz
-      cd nim-0.17.0
+      git clone --depth=1 -b devel https://github.com/nim-lang/Nim.git
+      cd Nim
+      git clone --depth 1 https://github.com/nim-lang/csources.git
+      cd csources
       sh build.sh
-      cd `pwd`/nim-0.17.0
-      echo `pwd`
-      ll .
+      cd ../
+      bin/nim c koch
+      ./koch boot -d:release
+      ./koch tools
+
 before_script:
-  - export PATH=`pwd`/nim-0.17.0/bin:$PATH
+  - export PATH=`pwd`/Nim/bin:$PATH
 
 script:
 - nimble test
