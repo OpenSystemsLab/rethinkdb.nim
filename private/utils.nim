@@ -2,47 +2,36 @@ import macros, json, tables, net, asyncdispatch, asyncnet
 
 import types, ql2, datum
 
-macro newQueryAst*(n: varargs[untyped]): untyped =
-  result = newNimNode(nnkStmtList)
-  # result = new(RqlQuery)
-  result.add(
-    newAssignment(
-      ident("result"),
-      newCall("new", ident("RqlQuery"))
-    )
-  )
+template NEW_QUERY*(t: TermType): untyped =
+  result = new(RqlQuery)
+  result.tt = t
+  result.args = @[]
+  result.optargs = newTable[string, RqlQuery]()
 
-  # result.tt = TermType
-  result.add(
-    newAssignment(
-      newDotExpr(ident("result"), ident("tt")),
-      newIdentNode($n[0])
-    )
-  )
 
-  # result.args = @[]
-  result.add(
-    newAssignment(
-      newDotExpr(ident("result"), ident("args")), prefix(newNimNode(nnkBracket), "@")
-    )
-  )
+template NEW_QUERY*(t: TermType, a1: untyped): untyped =
+  result = new(RqlQuery)
+  result.tt = t
+  result.args = @[]
+  result.optargs = newTable[string, RqlQuery]()
+  result.addArg(a1)
 
-  # result.optargs = newTable[string, Mutabledatum]()
-  var bracket = newNimNode(nnkBracketExpr)
-  bracket.add(ident("newTable"))
-  bracket.add(ident("string"))
-  bracket.add(ident("RqlQuery"))
+template NEW_QUERY*(t: TermType, a1, a2: untyped): untyped =
+  result = new(RqlQuery)
+  result.tt = t
+  result.args = @[]
+  result.optargs = newTable[string, RqlQuery]()
+  result.addArg(a1)
+  result.addArg(a2)
 
-  result.add(
-    newAssignment(
-      newDotExpr(ident("result"), ident("optargs")),
-      newCall(bracket)
-    )
-  )
-
-  if n.len > 1:
-    for i in 1..<n.len:
-      result.add(newCall("addArg", ident("result"), newIdentNode($n[i])))
+template NEW_QUERY*(t: TermType, a1, a2, a3: untyped): untyped =
+  result = new(RqlQuery)
+  result.tt = t
+  result.args = @[]
+  result.optargs = newTable[string, RqlQuery]()
+  result.addArg(a1)
+  result.addArg(a2)
+  result.addArg(a3)
 
 proc newQuery*(tt: TermType): RqlQuery {.inline.} =
   new(result)

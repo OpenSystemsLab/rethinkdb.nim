@@ -200,12 +200,12 @@ else:
 
 
 proc makeVar(i: int): RqlQuery =
-  newQueryAst(VAR)
+  NEW_QUERY(VAR)
   result.addArg(newDatum(i))
 
 proc funcWrap[T](f: proc(x: RqlQuery): T): RqlQuery =
   ## Wraper for anonymous function
-  newQueryAst(FUNC)
+  NEW_QUERY(FUNC)
 
   let v1 = makeVar(1)
   result.addArg(&[1])
@@ -219,7 +219,7 @@ proc funcWrap[T](f: proc(x: RqlQuery): T): RqlQuery =
     result.addArg(res)
 
 proc funcWrap[T](f: proc(x: RqlQuery, y: RqlQuery): T): RqlQuery =
-  newQueryAst(FUNC)
+  NEW_QUERY(FUNC)
 
   let v1 = makeVar(1)
   let v2 = makeVar(2)
@@ -248,9 +248,6 @@ proc makeFunc*[T](f: T): RqlQuery =
   result.addArg(&[varId])
   result.addArg(f)
 
-proc bracketInner(r:  RqlQuery): untyped {.inline.} =
-  newQueryAst(BRACKET, r)
-
 proc `[]`*(r: RqlQuery, s: auto): RqlQuery =
   ## Operator for create row's fields chain
   ##
@@ -258,8 +255,7 @@ proc `[]`*(r: RqlQuery, s: auto): RqlQuery =
   ##
   ## .. code-block:: nim
   ##  r.row["age"]
-  result = bracketInner(r)
-  result.addArg(s)
+  NEW_QUERY(BRACKET, r, s)
 
 
 include queries/db

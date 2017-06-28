@@ -1,7 +1,7 @@
 import json
 
 proc circle*(r: RethinkClient, loc: auto, radius: int, numVertices = 32, geoSystem = "", unit = "", fill = true): RqlQuery =
-  newQueryAst(CIRCLE, loc, radius)
+  NEW_QUERY(CIRCLE, loc, radius)
 
   if numVertices != 32:
     result.setOption("num_vertices", numVertices)
@@ -16,7 +16,7 @@ proc circle*(r: RethinkClient, loc: auto, radius: int, numVertices = 32, geoSyst
     result.setOption("fill", false)
 
 proc distance*[T: RethinkClient|RqlQuery](r: T, p1, p2: auto, geoSystem = "", unit = ""): RqlQuery =
-  newQueryAst(DISTANCE, p1, p2)
+  NEW_QUERY(DISTANCE, p1, p2)
 
   if geoSystem != "" and geoSystem != "WGS84":
     result.setOption("geo_system", geoSystem)
@@ -25,25 +25,25 @@ proc distance*[T: RethinkClient|RqlQuery](r: T, p1, p2: auto, geoSystem = "", un
     result.setOption("unit", unit)
 
 proc fill*[T](r: T): RqlQuery =
-  newQueryAst(FILL)
+  NEW_QUERY(FILL)
 
 proc geojson*[T](r: T, json: JsonNode): RqlQuery =
-  newQueryAst(GEOJSON, json)
+  NEW_QUERY(GEOJSON, json)
 
 proc geojson*[T](r: T, json: string): RqlQuery =
   r.geojson(parseJson(json))
 
 proc toGeojson*[T](r: T): RqlQuery =
   #TODO
-  newQueryAst(TO_GEOJSON, r)
+  NEW_QUERY(TO_GEOJSON, r)
 
 proc getInterSecting*[T: array[2, float]|RqlQuery](r: RqlQuery, geometry: T, index = ""): RqlQuery =
-  newQueryAst(GET_INTERSECTING, r, geometry)
+  NEW_QUERY(GET_INTERSECTING, r, geometry)
   if index != "":
     result.setOption("index", index)
 
 proc getNearest*[T: array[2, float]|RqlQuery](r: RqlQuery, point: T, index = "", maxResults = 100, maxDist = 100_000, unit= "", geoSystem=""): RqlQuery =
-  newQueryAst(GET_NEAREST, r, point)
+  NEW_QUERY(GET_NEAREST, r, point)
   if index != "":
     result.setOption("index", index)
 
@@ -60,23 +60,23 @@ proc getNearest*[T: array[2, float]|RqlQuery](r: RqlQuery, point: T, index = "",
     result.setOption("unit", unit)
 
 proc includes*[T](r: T, geometry: RqlQuery): RqlQuery =
-  newQueryAst(INCLUDES, geometry)
+  NEW_QUERY(INCLUDES, geometry)
 
 proc intersecs*[T](r: T, geometry: RqlQuery): RqlQuery =
-  newQueryAst(INTERSECTS, geometry)
+  NEW_QUERY(INTERSECTS, geometry)
 
 proc line*[T: array[2, float]|RqlQuery](r: RethinkClient, geometries: varargs[T]): RqlQuery =
-  newQueryAst(LINE)
+  NEW_QUERY(LINE)
   for x in geometries:
     result.addArg(x)
 
 proc point*[T](r: T, lon, lat: float): RqlQuery =
-  newQueryAst(POINT, lon, lat)
+  NEW_QUERY(POINT, lon, lat)
 
 proc polygon*[T, U: array[2, float]|RqlQuery](r: T, geometries: varargs[U]): RqlQuery =
-  newQueryAst(POLYGON)
+  NEW_QUERY(POLYGON)
   for x in geometries:
     result.addArg(x)
 
 proc polygonSub*[T, U: array[2, float]|RqlQuery](r: T, polygon2: U): RqlQuery =
-  newQueryAst(POLYGON_SUB, polygon2)
+  NEW_QUERY(POLYGON_SUB, polygon2)

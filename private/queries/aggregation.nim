@@ -1,5 +1,5 @@
 proc group*[T: RqlQuery|string](r: RqlQuery, n: openArray[T], index: RqlQuery = nil, multi = false): RqlQuery =
-  newQueryAst(GROUP, r)
+  NEW_QUERY(GROUP, r)
   for x in n:
     result.addArg(x)
 
@@ -12,72 +12,72 @@ proc group*[T: RqlQuery|string](r: RqlQuery, n: openArray[T], index = "", multi 
   r.group(n, newDatum(index), multi)
 
 proc ungroup*(r: RqlQuery): RqlQuery =
-  newQueryAst(UNGROUP, r)
+  NEW_QUERY(UNGROUP, r)
 
 proc reduce*[T](r: RqlQuery, f: proc(x, y: RqlQuery): T): RqlQuery =
-  newQueryAst(REDUCE, r)
+  NEW_QUERY(REDUCE, r)
   result.addArg(funcWrap(f))
 
 proc count*[T](r: T): RqlQuery =
-  newQueryAst(COUNT, r)
+  NEW_QUERY(COUNT, r)
 
 proc count*[T](r: T, v: int): RqlQuery =
-  newQueryAst(COUNT, r, v)
+  NEW_QUERY(COUNT, r, v)
 
 proc count*[T, U](r: T, f: proc(x: RqlQuery): U): RqlQuery =
-  newQueryAst(COUNT, r)
+  NEW_QUERY(COUNT, r)
   result.addArg(funcWrap(f))
 
 proc sum*[T](r: T, f = ""): RqlQuery =
-  newQueryAst(SUM, r)
+  NEW_QUERY(SUM, r)
   if f != "":
     result.addArg(f)
 
 proc sum*[T, U](r: T, f: proc(x: RqlQuery): U): RqlQuery =
-  newQueryAst(SUM, r)
+  NEW_QUERY(SUM, r)
   result.addArg(funcWrap(f))
 
 proc avg*[T](r: T, f = ""): RqlQuery=
-  newQueryAst(AVG, r)
+  NEW_QUERY(AVG, r)
   if f != "":
     result.addArg(f)
 
 proc avg*[T, U](r: T, f: proc(x: RqlQuery): U): RqlQuery =
-  newQueryAst(AVG, r)
+  NEW_QUERY(AVG, r)
   result.addArg(funcWrap(f))
 
 proc min*[T](r: T, f = "", index = ""): RqlQuery=
-  newQueryAst(MIN, r)
+  NEW_QUERY(MIN, r)
   if f != "":
     result.addArg(f)
   if index != "":
     result.setOption("index", index)
 
 proc min*[T, U](r: T, f: proc(x: RqlQuery): U): RqlQuery =
-  newQueryAst(MIN, r)
+  NEW_QUERY(MIN, r)
   result.addArg(funcWrap(f))
 
 proc max*[T](r: T, f = "", index = ""): RqlQuery=
-  newQueryAst(MAX, r)
+  NEW_QUERY(MAX, r)
   if f != "":
     result.addArg(f)
   if index != "":
     result.setOption("index", index)
 
 proc max*[T, U](r: T, f: proc(x: RqlQuery): U): RqlQuery =
-  newQueryAst(MAX, r)
+  NEW_QUERY(MAX, r)
   result.addArg(funcWrap(f))
 
 proc distinctR*[T](r: T, index = ""): RqlQuery =
-  newQueryAst(DISTINCT, r)
+  NEW_QUERY(DISTINCT, r)
   if index != "":
     result.setOption("index", index)
 
 proc contains*[T](r: RqlQuery, n: varargs[proc(x: RqlQuery): T]): RqlQuery =
-  newQueryAst(CONTAINS, r)
+  NEW_QUERY(CONTAINS, r)
   result.addArg(funcWrap(n))
 
 proc contains*[T](r: RqlQuery, n: varargs[T]): RqlQuery =
-  newQueryAst(CONTAINS, r)
+  NEW_QUERY(CONTAINS, r)
   for x in n:
     result.addArg(x)

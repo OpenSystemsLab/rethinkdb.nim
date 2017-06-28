@@ -4,22 +4,22 @@
 
 proc db*(r: RethinkClient, db: string): RqlQuery =
   ## Reference a database.
-  newQueryAst(DB)
+  NEW_QUERY(DB)
 
-proc table*(r: RethinkClient, t: string): RqlQuery =
+proc table*[T: RethinkClient|RqlQuery](r: T, t: string): RqlQuery =
   ## Select all documents in a table
-  newQueryAst(TABLE_R, t)
-  
-proc table*(r: RqlQuery, t: string): RqlQuery =
-  ## Select all documents in a table
-  newQueryAst(TABLE_R, r, t)
+  when r is RethinkClient:
+    NEW_QUERY(TABLE_R, t)
+  else:
+    NEW_QUERY(TABLE_R, r, t)
 
-proc get*[T: int|string](r: RqlQuery, t: T): RqlQuery =
+proc get*(r: RqlQuery, t: int): RqlQuery =
   ## Get a document by primary key
-  newQueryAst(GET, r, t)
+  NEW_QUERY(GET, r, t)
 
-proc getAllInner(r: RqlQuery): RqlQuery {.inline.} =
-  newQueryAst(GET_ALL, r)
+proc get*(r: RqlQuery, t: string): RqlQuery =
+  ## Get a document by primary key
+  NEW_QUERY(GET, r, t)
 
 proc getAll*[T: int|string](r: RqlQuery, args: openArray[T], index = ""): RqlQuery =
   ## Get all documents where the given value matches the value of the requested index
@@ -31,8 +31,7 @@ proc getAll*[T: int|string](r: RqlQuery, args: openArray[T], index = ""): RqlQue
   ##  r.table("posts").getAll([1, 1]).run()
   ##  # with secondary index
   ##  r.table("posts").getAll(["nim", "lang"], "tags").run()
-  result = getAllInner(r)
-
+  NEW_QUERY(r)
   for x in args:
     result.addArg(@x)
 
@@ -41,7 +40,7 @@ proc getAll*[T: int|string](r: RqlQuery, args: openArray[T], index = ""): RqlQue
 
 proc between*(r: RqlQuery, lowerKey, upperKey: MutableDatum, index = "id", leftBound = "closed", rightBound = "open"): RqlQuery =
   ## Get all documents between two keys
-  newQueryAst(BETWEEN, r, lowerKey, upperKey)
+  NEW_QUERY(BETWEEN, r, lowerKey, upperKey)
   
   if index != "id":
     result.setOption("index", index)
@@ -52,14 +51,14 @@ proc between*(r: RqlQuery, lowerKey, upperKey: MutableDatum, index = "id", leftB
 
 proc filter*[T: MutableDatum|RqlQuery](r: RqlQuery, data: T, default = false): RqlQuery =
   ## Get all the documents for which the given predicate is true
-  newQueryAst(FILTER, r)
+  NEW_QUERY(FILTER, r)
 
   result.addArg(r.makeFunc(data))
   if default:
     result.setOption("default", true)
 
 proc filter*[T](r: RqlQuery, f: proc(x: RqlQuery): T, default = false): RqlQuery =
-  newQueryAst(FILTER, r)
+  NEW_QUERY(FILTER, r)
   result.addArg(funcWrap(f))
   if default:
     result.setOption("default", true)

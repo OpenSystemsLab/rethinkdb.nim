@@ -4,53 +4,53 @@
 
 proc args*(r: RethinkClient, args: MutableDatum): RqlQuery =
   ## `r.args` is a special term that’s used to splice an array of arguments into another term
-  newQueryAst(ARGS, args)
+  NEW_QUERY(ARGS, args)
 
 proc binary*(r: RethinkClient, data: BinaryData): RqlQuery =
   ## Encapsulate binary data within a query.
-  newQueryAst(BINARY, data)
+  NEW_QUERY(BINARY, data)
 
 proc funCall*[T, U](r: T, f: proc(x: RqlQuery): U): RqlQuery =
   when r is RethinkClient:
-    newQueryAst(FUNCALL)
+    NEW_QUERY(FUNCALL)
   else:
-    newQueryAst(FUNCALL, r)
+    NEW_QUERY(FUNCALL, r)
 
   result.addArg(funcWrap(f))
 
 proc branch*[T](r: T, test, trueBranch, falseBranch: RqlQuery): RqlQuery =
-  newQueryAst(BRANCH, test, trueBranch, falseBranch)
+  NEW_QUERY(BRANCH, test, trueBranch, falseBranch)
 
 proc forEach*[T](r: RqlQuery, f: proc(x: RqlQuery): T): RqlQuery =
-  newQueryAst(FOR_EACH, r)
+  NEW_QUERY(FOR_EACH, r)
   result.addArg(funcWrap(f))
 
 proc range*[T](r: T): RqlQuery =
   when r is RethinkClient:
-    newQueryAst(RANGE)
+    NEW_QUERY(RANGE)
   else:
-    newQueryAst(RANGE, r)
+    NEW_QUERY(RANGE, r)
 
 proc range*[T](r: T, endValue: int): RqlQuery =
   when r is RethinkClient:
-    newQueryAst(RANGE)
+    NEW_QUERY(RANGE)
   else:
-    newQueryAst(RANGE, r)
+    NEW_QUERY(RANGE, r)
   result.addArg(endValue)
 
 proc range*[T](r: T, startValue, endValue: int): RqlQuery =
   when r is RethinkClient:
-    newQueryAst(RANGE)
+    NEW_QUERY(RANGE)
   else:
-    newQueryAst(RANGE, r)
+    NEW_QUERY(RANGE, r)
   result.addArg(startValue)
   result.addArg(endValue)
 
 proc error*(r: RethinkClient, msg: string): RqlQuery =
-  newQueryAst(ERROR, msg)
+  NEW_QUERY(ERROR, msg)
 
 proc default*[T](r: RqlQuery, t: T): RqlQuery =
-  newQueryAst(DEFAULT, r, t)
+  NEW_QUERY(DEFAULT, r, t)
 
 proc expr*[T: RethinkClient|RqlQuery](r: T, x: auto): RqlQuery =
   ## Construct a ReQL JSON object from a native object
@@ -63,26 +63,26 @@ proc expr*[T: RethinkClient|RqlQuery](r: T, x: auto): RqlQuery =
 
 proc js*(r: RethinkClient, js: string, timeout = 0): RqlQuery =
   ## Create a javascript expression.
-  newQueryAst(JAVASCRIPT, js)
+  NEW_QUERY(JAVASCRIPT, js)
 
 proc coerceTo*(r: RqlQuery, x: string): RqlQuery =
-  newQueryAst(COERCE_TO, r, x)
+  NEW_QUERY(COERCE_TO, r, x)
 
 proc typeof*(r: RqlQuery): RqlQuery =
-  newQueryAst(TYPE_OF, r)
+  NEW_QUERY(TYPE_OF, r)
 
 proc info*(r: RqlQuery): RqlQuery =
-  newQueryAst(INFO, r)
+  NEW_QUERY(INFO, r)
 
 proc json*(r: RethinkClient, s: string): RqlQuery =
-  newQueryAst(JSON, s)
+  NEW_QUERY(JSON, s)
 
 proc toJson*(r: RqlQuery): RqlQuery =
-  newQueryAst(TO_JSON_STRING, r)
+  NEW_QUERY(TO_JSON_STRING, r)
 
 proc http*(r: RethinkClient, url: string): RqlQuery =
-  newQueryAst(HTTP, url)
+  NEW_QUERY(HTTP, url)
   #TODO options
 
 proc uuid*(r: RethinkClient): RqlQuery =
-  newQueryAst(UUID)
+  NEW_QUERY(UUID)
