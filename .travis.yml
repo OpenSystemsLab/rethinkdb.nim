@@ -31,3 +31,5 @@ workflows:
       - build
       - build_alpine
 
+addons:
+  rethinkdb: "2.3"
