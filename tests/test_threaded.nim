@@ -1,20 +1,15 @@
 import json, threadpool
 import ../rethinkdb
 
-#var r {.threadvar.}: RethinkClient
+var r {.threadvar.}: RethinkClient
+setMaxPoolSize(64)
 
-#r = newRethinkClient()
-#r.connect()
-
-#setMaxPoolSize(64)
-proc insert(c: int) {.thread.} =
-  var r = newRethinkClient()
+proc insert(c: int) =
+  r = newRethinkClient()
   r.connect()
-  discard r.db("test").table("test").insert(&*{"c": c}).run(r, noreply=true, durability="soft")
+  r.use("test")
+  r.table("test").insert(&*{"c": c}).run(r, noreply=true, durability="soft")
   r.close()
 
-
-for x in 0..100_000:
+for x in 0..1_000:
   spawn insert(x)
-
-sync()
