@@ -1,11 +1,11 @@
-version       = "0.2.3"
+version       = "0.2.3.1"
 author        = "Huy Doan"
 description   = "RethinkDB driver for Nim"
 license       = "MIT"
 
 skipDirs      = @["tests", "bench"]
 
-requires "nim >= 0.17.0", "struct >= 0.1.1"
+requires "nim >= 0.17.0", "struct >= 0.1.1", "scram >= 0.1.0"
 
 
 
