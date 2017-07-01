@@ -1,7 +1,7 @@
 
 ## This module provides all high-level API for query and manipulate data
 import strutils, json, tables, future
-import ql2, datum, connection,  utils, types
+import ql2, datum, connection, utils, types
 
 
 when not compileOption("threads"):
