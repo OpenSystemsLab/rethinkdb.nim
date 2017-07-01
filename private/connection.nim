@@ -137,7 +137,7 @@ when not compileOption("threads"):
       L.log(lvlDebug, "Server response: ", data)
 
     let
-      scramClient = newScramClient(SHA256)
+      scramClient = newScramClient[SHA256Digest]()
       firstMessage = scramClient.prepareFirstMessage(r.username)
 
     data = HANDSHAKE_FIRST_MESSAGE % firstMessage
@@ -182,7 +182,7 @@ else:
       L.log(lvlDebug, "Server response: ", data)
 
     let
-      scramClient = newScramClient(SHA256)
+      scramClient = newScramClient[SHA256Digest]()
       firstMessage = scramClient.prepareFirstMessage(r.username)
 
     data = HANDSHAKE_FIRST_MESSAGE % firstMessage
