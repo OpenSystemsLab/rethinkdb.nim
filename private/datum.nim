@@ -35,7 +35,7 @@ proc `%`*(m: MutableDatum): JsonNode {.thread.} =
     result = %*{"$reql_type$": "BINARY", "data": m.binary.data}
   of R_TIME:
     var tz =
-      if m.time.timezone == 0:
+      if m.time.timezone == utc():
         "+00:00"
       else:
         m.time.format("zzz")
