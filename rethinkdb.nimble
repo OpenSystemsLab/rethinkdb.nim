@@ -1,4 +1,4 @@
-version       = "0.2.3.1"
+version       = "0.2.3.2"
 author        = "Huy Doan"
 description   = "RethinkDB driver for Nim"
 license       = "MIT"
