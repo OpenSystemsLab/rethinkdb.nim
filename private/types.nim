@@ -33,9 +33,5 @@ type
   RqlQuery* = ref object of RootObj
     args*: seq[RqlQuery]
     optargs*: TableRef[string, RqlQuery]
-
-    case tt*: TermType
-    of DATUM:
-      value*: MutableDatum
-    else:
-      discard
+    tt*: TermType
+    value*: MutableDatum
