@@ -17,4 +17,4 @@ task test, "Runs the test suite":
   exec "nim c -r tests/test_math_logic.nim"
   exec "nim c -r tests/test_ordering.nim"
   exec "nim c -r tests/test_threaded.nim"
- 
+

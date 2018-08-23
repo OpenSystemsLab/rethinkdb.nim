@@ -38,11 +38,11 @@ else:
       queryToken: uint64
 
 type
-  RqlAuthError* = object of SystemError
-  RqlDriverError* = object of SystemError
-  RqlClientError* = object of SystemError
-  RqlCompileError* = object of SystemError
-  RqlRuntimeError* = object of SystemError
+  RqlAuthError* = object of Exception
+  RqlDriverError* = object of Exception
+  RqlClientError* = object of Exception
+  RqlCompileError* = object of Exception
+  RqlRuntimeError* = object of Exception
 
   Response* = ref object of RootObj
     kind*: ResponseType
@@ -108,7 +108,7 @@ proc use*(r: RethinkClient, s: string) =
   term.args = @[newDatum(s)]
   r.addOption("db", &term)
 
-proc newRethinkClient*(address = "127.0.0.1", port = Port(28015), db: string = nil): RethinkClient =
+proc newRethinkClient*(address = "127.0.0.1", port = Port(28015), db: string = ""): RethinkClient =
   ## Init new client instance
   assert address != ""
   result = new(RethinkClient)
