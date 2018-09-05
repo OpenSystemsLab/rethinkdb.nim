@@ -122,7 +122,7 @@ proc newRethinkClient*(address = "127.0.0.1", port = Port(28015), db: string = "
   result.sockConnected = false
   result.queryToken = 0
 
-  if not db.isNil and db != "":
+  if db != "":
     result.use(db)
 when not compileOption("threads"):
   proc handshake(r: RethinkClient) {.async.} =
