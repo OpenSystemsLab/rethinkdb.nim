@@ -50,33 +50,32 @@ proc setOption*(r: RqlQuery, k: string, v: RqlQuery) {.noSideEffect, inline.} =
 proc setOption*[T](r: RqlQuery, k: string, v: T) {.noSideEffect, inline.} =
   r.optargs[k] = newDatum(v)
 
-proc readUntil*(s: Socket, delim: char, bufferSize = 12): string =
-  result = newString(bufferSize)
+proc readUntil*(s: Socket, delim: char): string =
+  result = ""
+  
   var
     c: char
     byteRead = 0
+  
   while s.recv(addr c, 1) == 1:
     if c == delim:
       break
-    if byteRead >= result.len:
-      setLen(result, result.len + bufferSize)
+    
+    result.add c
+    inc byteRead
 
-    result[byteRead] = c
-    inc(byteRead)
-
-proc readUntil*(s: AsyncSocket, delim: char, bufferSize = 12): Future[string] {.async.} =
-  result = newString(bufferSize)
+proc readUntil*(s: AsyncSocket, delim: char): Future[string] {.async.} =
+  result = ""
+  
   var
     c: char
     byteRead = 0
     ret: int
+  
   while true:
     ret = await s.recvInto(addr c, 1)
     if ret != 1 or c == delim:
       break
-
-    if byteRead >= result.len:
-      setLen(result, result.len + bufferSize)
-
-    result[byteRead] = c
-    inc(byteRead)
+    
+    result.add c
+    inc byteRead
