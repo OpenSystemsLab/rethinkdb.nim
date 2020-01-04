@@ -128,51 +128,50 @@ else:
     var options = newTable[string, MutableDatum]()
 
     if readMode != "single":
-      options["read_mode"] = &readMode
+      options["read_mode"] = readMode.toDatum
 
     if timeFormat != "native":
-      options["time_format"] = &timeFormat
+      options["time_format"] = timeFormat.toDatum
 
     if profile:
-      options["profile"] = &profile
+      options["profile"] = profile.toDatum
 
     if durability != "hard":
-      options["durability"] = &durability
+      options["durability"] = durability.toDatum
 
     if groupFormat != "native":
-      options["group_format"] = &groupFormat
+      options["group_format"] = groupFormat.toDatum
 
     if noreply:
-      options["noreply"] = &noreply
+      options["noreply"] = noreply.toDatum
 
     if db != "":
-      options["db"] = &db
+      options["db"] = db.toDatum
 
     if arrayLimit != 100_000:
-      options["array_limit"] = &arrayLimit
+      options["array_limit"] = arrayLimit.toDatum
 
     if binaryFormat != "native":
-      options["binary_format"] = &binaryFormat
+      options["binary_format"] = binaryFormat.toDatum
 
     if minBatchRows != 8:
-      options["min_batch_rows"] = &minBatchRows
+      options["min_batch_rows"] = minBatchRows.toDatum
 
     if maxBatchRows != 0:
-      options["max_batch_rows"] = &maxBatchRows
+      options["max_batch_rows"] = maxBatchRows.toDatum
 
     if maxBatchBytes != 0:
-      options["max_batch_bytes"] = &maxBatchBytes
+      options["max_batch_bytes"] = maxBatchBytes.toDatum
 
     if maxBatchSeconds != 0.5:
-      options["max_batch_seconds"] = &maxBatchSeconds
+      options["max_batch_seconds"] = maxBatchSeconds.toDatum
 
     if firstBatchScaleDownFactor != 4:
-      options["first_batch_scaledown_factor"] = &firstBatchScaleDownFactor
+      options["first_batch_scaledown_factor"] = firstBatchScaleDownFactor.toDatum
 
     c.startQuery(r, options)
 
     if not noreply:
-
       var response = c.readResponse()
       case response.kind
       of SUCCESS_ATOM:
@@ -196,9 +195,6 @@ else:
         raise newException(RqlCompileError, $response.data[0])
       of RUNTIME_ERROR:
         raise newException(RqlRuntimeError, $response.data[0])
-      else:
-        raise newException(RqlDriverError, "Unknown response type $#" % [$response.kind])
-
 
 proc makeVar(i: int): RqlQuery =
   NEW_QUERY(VAR)
@@ -209,7 +205,7 @@ proc funcWrap[T](f: proc(x: RqlQuery): T): RqlQuery =
   NEW_QUERY(FUNC)
 
   let v1 = makeVar(1)
-  result.addArg(&[1])
+  result.addArg([1])
   let res = f(v1)
   when res is array:
     var arr = newQuery(MAKE_ARRAY)

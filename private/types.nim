@@ -1,13 +1,9 @@
-import ql2
-import tables
-import datum
-import times
+import ql2, tables, times
 
 type
-  BinaryData* = ref object of RootObj
-    data*: string
+  BinaryData* {.borrow.} = distinct string
 
-  MutableDatum* = ref object of RootObj
+  MutableDatum* = object
     case kind*: DatumType
     of R_NULL:
       discard
@@ -22,16 +18,16 @@ type
     of R_ARRAY:
       arr*: seq[MutableDatum]
     of R_OBJECT:
-      obj*: TableRef[string, MutableDatum]
+      obj*: Table[string, MutableDatum]
     of R_BINARY:
       binary*: BinaryData
     of R_TIME:
-      time*: TimeInfo
+      time*: DateTime
     of R_TERM:
       term*: RqlQuery
 
   RqlQuery* = ref object of RootObj
     args*: seq[RqlQuery]
-    optargs*: TableRef[string, RqlQuery]
+    optargs*: Table[string, RqlQuery]
     tt*: TermType
     value*: MutableDatum

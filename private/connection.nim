@@ -106,7 +106,7 @@ proc use*(r: RethinkClient, s: string) =
   new(term)
   term.tt = DB
   term.args = @[newDatum(s)]
-  r.addOption("db", &term)
+  r.addOption("db", term.toDatum)
 
 proc newRethinkClient*(address = "127.0.0.1", port = Port(28015), db: string = ""): RethinkClient =
   ## Init new client instance
@@ -205,6 +205,8 @@ else:
     data = r.sock.readUntil('\0')
     when defined(debug):
       L.log(lvlDebug, "Server response: ", data)
+    when defined(verbose):
+      echo "<<< ", data
     response = parseJson(data)
     if not response.hasKey("success") or not response["success"].bval:
       raise newException(RqlAuthError, "Error code " & $response["error_code"].num & ": " & response["error"].str)
@@ -317,7 +319,8 @@ else:
     if not options.isNil:
       for k, v in options.pairs():
         q.options.add(k, v)
-
+    when defined(verbose):
+      echo ">>> ", q
     discard r.runQuery(q)
 
   proc continueQuery*(r: RethinkClient, token: uint64 = 0) =
@@ -343,7 +346,8 @@ else:
       raise newException(RqlDriverError, "Unable to read packet body")
     when defined(debug):
       L.log(lvlDebug, "Response: [$#, $#, $#]" % [$token, $length, buf])
-
+    when defined(verbose):
+      echo "<<< ", buf
     newResponse(buf, token)
 
   proc connect*(r: RethinkClient, username = "admin", password: string = "") =

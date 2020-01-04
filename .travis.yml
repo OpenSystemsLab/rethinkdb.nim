@@ -2,9 +2,6 @@ os:
   - linux
 dist: trusty
 
-addons:
-  rethinkdb: '2.3.4'
-
 language: c
 
 install:
