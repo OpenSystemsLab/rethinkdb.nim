@@ -1,4 +1,4 @@
-import asyncnet, strutils, logging, json, struct, tables
+import asyncnet, strutils, logging, json, struct
 import scram/client
 
 when not compileOption("threads"):
@@ -32,7 +32,7 @@ else:
       port: Port
       username: string
       password: string
-      options: TableRef[string, MutableDatum]
+      options: seq[MutableDatumPairs]
       sock: Socket
       sockConnected: bool
       queryToken: uint64
@@ -54,7 +54,7 @@ type
   Query* = ref object of RootObj
     kind*: QueryType
     term*: RqlQuery
-    options*: TableRef[string, MutableDatum]
+    options*: seq[MutableDatumPairs]
 when defined(debug):
   var L {.threadvar.}: ConsoleLogger
   L = newConsoleLogger()
@@ -66,8 +66,8 @@ proc `$`*(q: Query): string {.thread.} =
   if q.kind == START:
     j.add(q.term.toJson)
     var opts = newJObject()
-    for k, v in q.options.pairs():
-        opts.add(k, %v)
+    for p in q.options:
+        opts.add(p[0], %p[1])
     j.add(opts)
   result = $j
 
@@ -98,7 +98,7 @@ proc nextToken(r: RethinkClient): uint64 =
 
 proc addOption*(r: RethinkClient, k: string, v: MutableDatum) =
   ## Set a global option
-  r.options[k] = v
+  r.options.add((k, v))
 
 proc use*(r: RethinkClient, s: string) =
   ## Change the default database on this connection.
@@ -114,7 +114,6 @@ proc newRethinkClient*(address = "127.0.0.1", port = Port(28015), db: string = "
   result = new(RethinkClient)
   result.address = address
   result.port = port
-  result.options = newTable[string, MutableDatum]()
   when not compileOption("threads"):
     result.sock = newAsyncSocket()
   else:
@@ -306,19 +305,18 @@ else:
     var data = pack(">q<i$#s" % $termLen, token, termLen, term)
     r.sock.send(data)
 
-  proc startQuery*(r: RethinkClient, t: RqlQuery, options: TableRef[string, MutableDatum] = nil) =
+  proc startQuery*(r: RethinkClient, t: RqlQuery, options: seq[MutableDatumPairs]) =
     ## Send START query
     var q = new(Query)
     q.kind = START
     q.term = t
-    q.options = newTable[string, MutableDatum]()
 
-    if not r.options.isNil and r.options.len > 0:
-      for k, v in r.options.pairs():
-        q.options.add(k, v)
-    if not options.isNil:
-      for k, v in options.pairs():
-        q.options.add(k, v)
+    if r.options.len > 0:
+      for p in r.options:
+        q.options.add(p)
+    if options.len > 0:
+      for p in options:
+        q.options.add(p)
     when defined(verbose):
       echo ">>> ", q
     discard r.runQuery(q)

@@ -1,13 +1,12 @@
 
 ## This module provides all high-level API for query and manipulate data
-import strutils, json, tables, future
+import json, future
 import ql2, datum, connection, utils, types
 
 
 when not compileOption("threads"):
   import asyncdispatch
 
-export newTable
 export `=>`
 
 var defaultClient {.threadvar.}: RethinkClient
@@ -40,46 +39,46 @@ when not compileOption("threads"):
     var options = newTable[string, MutableDatum]()
 
     if readMode != "single":
-      options["read_mode"] = &readMode
+      options.add(("read_mode",  &readMode))
 
     if timeFormat != "native":
-      options["time_format"] = &timeFormat
+      options.add(("time_format",  &timeFormat))
 
     if profile:
-      options["profile"] = &profile
+      options.add(("profile",  &profile))
 
     if durability != "hard":
-      options["durability"] = &durability
+      options.add(("durability",  &durability))
 
     if groupFormat != "native":
-      options["group_format"] = &groupFormat
+      options.add(("group_format",  &groupFormat))
 
     if noreply:
-      options["noreply"] = &noreply
+      options.add(("noreply",  &noreply))
 
     if db != "":
-      options["db"] = &db
+      options.add(("db",  &db))
 
     if arrayLimit != 100_000:
-      options["array_limit"] = &arrayLimit
+      options.add(("array_limit",  &arrayLimit))
 
     if binaryFormat != "native":
-      options["binary_format"] = &binaryFormat
+      options.add(("binary_format",  &binaryFormat))
 
     if minBatchRows != 8:
-      options["min_batch_rows"] = &minBatchRows
+      options.add(("min_batch_rows",  &minBatchRows))
 
     if maxBatchRows != 0:
-      options["max_batch_rows"] = &maxBatchRows
+      options.add(("max_batch_rows",  &maxBatchRows))
 
     if maxBatchBytes != 0:
-      options["max_batch_bytes"] = &maxBatchBytes
+      options.add(("max_batch_bytes",  &maxBatchBytes))
 
     if maxBatchSeconds != 0.5:
-      options["max_batch_seconds"] = &maxBatchSeconds
+      options.add(("max_batch_seconds",  &maxBatchSeconds))
 
     if firstBatchScaleDownFactor != 4:
-      options["first_batch_scaledown_factor"] = &firstBatchScaleDownFactor
+      options.add(("first_batch_scaledown_factor",  &firstBatchScaleDownFactor))
 
     await c.startQuery(r, options)
 
@@ -125,49 +124,49 @@ else:
     if not c.isConnected:
       raise newException(RqlClientError, "Connection is closed.")
 
-    var options = newTable[string, MutableDatum]()
+    var options: seq[MutableDatumPairs]
 
     if readMode != "single":
-      options["read_mode"] = readMode.toDatum
+      options.add(("read_mode", readMode.toDatum))
 
     if timeFormat != "native":
-      options["time_format"] = timeFormat.toDatum
+      options.add(("time_format",  timeFormat.toDatum))
 
     if profile:
-      options["profile"] = profile.toDatum
+      options.add(("profile",  profile.toDatum))
 
     if durability != "hard":
-      options["durability"] = durability.toDatum
+      options.add(("durability",  durability.toDatum))
 
     if groupFormat != "native":
-      options["group_format"] = groupFormat.toDatum
+      options.add(("group_format",  groupFormat.toDatum))
 
     if noreply:
-      options["noreply"] = noreply.toDatum
+      options.add(("noreply",  noreply.toDatum))
 
     if db != "":
-      options["db"] = db.toDatum
+      options.add(("db",  db.toDatum))
 
     if arrayLimit != 100_000:
-      options["array_limit"] = arrayLimit.toDatum
+      options.add(("array_limit",  arrayLimit.toDatum))
 
     if binaryFormat != "native":
-      options["binary_format"] = binaryFormat.toDatum
+      options.add(("binary_format",  binaryFormat.toDatum))
 
     if minBatchRows != 8:
-      options["min_batch_rows"] = minBatchRows.toDatum
+      options.add(("min_batch_rows",  minBatchRows.toDatum))
 
     if maxBatchRows != 0:
-      options["max_batch_rows"] = maxBatchRows.toDatum
+      options.add(("max_batch_rows",  maxBatchRows.toDatum))
 
     if maxBatchBytes != 0:
-      options["max_batch_bytes"] = maxBatchBytes.toDatum
+      options.add(("max_batch_bytes",  maxBatchBytes.toDatum))
 
     if maxBatchSeconds != 0.5:
-      options["max_batch_seconds"] = maxBatchSeconds.toDatum
+      options.add(("max_batch_seconds",  maxBatchSeconds.toDatum))
 
     if firstBatchScaleDownFactor != 4:
-      options["first_batch_scaledown_factor"] = firstBatchScaleDownFactor.toDatum
+      options.add(("first_batch_scaledown_factor",  firstBatchScaleDownFactor.toDatum))
 
     c.startQuery(r, options)
 

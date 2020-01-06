@@ -1,10 +1,7 @@
-import json
-import tables
-import macros
-import times
-import base64
-import types
-import ql2
+import json, macros, times, base64
+import types, ql2
+
+{.checks: off.}
 
 proc toJson*(r: RqlQuery): JsonNode {.thread.}
 
@@ -27,8 +24,8 @@ proc `%`*(m: MutableDatum): JsonNode {.thread.} =
     result.add(arr)
   of R_OBJECT:
     result = newJObject()
-    for k, v in m.obj.pairs:
-      result.add(k, %v)
+    for p in m.obj:
+      result.add(p[0], %p[1])
   of R_BINARY:
     result = %*{"$reql_type$": "BINARY", "data": m.binary.string}
   of R_TIME:
@@ -61,8 +58,8 @@ proc toJson*(r: RqlQuery): JsonNode =
     result.add(arr)
     if r.optargs.len > 0:
       var obj = newJObject()
-      for k, v in r.optargs.pairs:
-        obj.add(k, v.toJson)
+      for v in r.optargs:
+        obj.add(v[0], v[1].toJson)
 
       result.add(obj)
 
@@ -89,6 +86,7 @@ template extract*(m: MutableDatum): untyped =
     nil
 
 proc toDatum*[T](v: T): MutableDatum {.inline.} =
+  #debugEcho T.type
   when T is string:
     result = MutableDatum(kind: R_STRING, str: v)
   elif T is bool:
@@ -97,12 +95,11 @@ proc toDatum*[T](v: T): MutableDatum {.inline.} =
     result = MutableDatum(kind: R_FLOAT, fval: v)
   elif T is SomeInteger:
     result = MutableDatum(kind: R_INTEGER, num: v)
-  elif T is array:
+  elif T is array or T is openArray:
     when v[0] is (string, MutableDatum):
-      var tbl = initTable[string, MutableDatum]()
+      result = MutableDatum(kind: R_OBJECT)
       for x in v:
-        tbl[x[0]] = toDatum(x[1])
-      result = toDatum(tbl)
+        result.obj.add((x[0], x[1]))
     else:
       result = MutableDatum(kind: R_ARRAY)
       for x in v:
@@ -115,7 +112,7 @@ proc toDatum*[T](v: T): MutableDatum {.inline.} =
     var tbl = initTable[string, MutableDatum]()
     tbl[v[0]] = toDatum(v[1])
     result = toDatum(tbl)
-  elif T is Table[string, MutableDatum]:
+  elif T is seq[(string, MutableDatum)]:
     result = MutableDatum(kind: R_OBJECT, obj: v)
   elif T is BinaryData:
     result = MutableDatum(kind: R_BINARY, binary: v)
@@ -129,26 +126,6 @@ proc toDatum*[T](v: T): MutableDatum {.inline.} =
     result = MutableDatum()
 
 template toBinary*(s: string): BinaryData = BinaryData(base64.encode(s))
-
-proc toDatum*[T](a: openArray[T]): MutableDatum {.inline.} =
-  result = MutableDatum(kind: R_ARRAY)
-  when T is int or T is float or T is string:
-    for x in a:
-      result.arr.add(x.toDatum)
-  elif T is MutableDatum:
-    for x in a:
-      result.arr.add(x)
-  elif T is (string, MutableDatum):
-    result.kind = R_OBJECT
-    result.obj = initTable[string, MutableDatum]()
-    for x in a:
-      result.obj[x[0]] = x[1]
-  elif T is tuple:
-    var tbl = initTable[string, MutableDatum]()
-    for x in a:
-      tbl[x[0]] = &x[1]
-    result = toDatum(tbl)
-
 
 proc toDatum*(node: JsonNode): MutableDatum {.inline.} =
   case node.kind
@@ -164,9 +141,8 @@ proc toDatum*(node: JsonNode): MutableDatum {.inline.} =
     result = MutableDatum(kind: R_NULL)
   of JObject:
     result = MutableDatum(kind: R_OBJECT)
-    result.obj = initTable[string, MutableDatum]()
     for key, item in node:
-      result.obj[key] = toDatum(item)
+      result.obj.add((key, toDatum(item)))
   of JArray:
     result = MutableDatum(kind: R_ARRAY)
     for item in items(node.elems):
