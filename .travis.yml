@@ -29,7 +29,7 @@ matrix:
   fast_finish: true
 
 addons:
-  rethinkdb: "2.4"
+  rethinkdb: '2.3.4'
 
 install:
   - export CHOOSENIM_NO_ANALYTICS=1
