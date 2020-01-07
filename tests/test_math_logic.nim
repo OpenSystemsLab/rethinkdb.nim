@@ -1,9 +1,7 @@
 import unittest, json
 import ../rethinkdb
 
-let r = newRethinkClient()
-r.connect()
-r.repl()
+let r = R.connect().repl()
 
 suite "math and logic tests":
   test "add":

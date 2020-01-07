@@ -5,7 +5,7 @@ const
 
 type
   ResponseType* = enum
-    SUCCESS_ATOM      = 1,  ## Query returned a single RQL datatype.
+    SUCCESS_ATOM      = 1, ## Query returned a single RQL datatype.
     SUCCESS_SEQUENCE  = 2, ## Query returned a sequence of RQL datatypes.
     SUCCESS_PARTIAL   = 3, ## Query returned a partial sequence of RQL
                            ## datatypes.  If you send a [CONTINUE] query with

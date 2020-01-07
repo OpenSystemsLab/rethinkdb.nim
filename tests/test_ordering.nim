@@ -1,12 +1,10 @@
 import unittest, json, random
 import ../rethinkdb
 
-let r = newRethinkClient()
-r.connect()
-r.repl()
+let r = R.connect().repl()
 
 randomize()
-let db = "test_lambda_" & $random(9999)
+let db = "test_lambda_" & $rand(9999)
 let table = "SuperHeroes"
 
 r.dbCreate(db).run()

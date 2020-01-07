@@ -17,8 +17,9 @@ proc row*[T: RethinkClient|RqlQuery](r: T): RqlQuery =
   #raise newException(RqlDriverError, "'r.row' is not callable, use 'r.row[...]' instead")
 
 
-proc repl*(r: RethinkClient) =
+proc repl*(r: RethinkClient): RethinkClient {.discardable.} =
   defaultClient = r
+  result = r
 
 when not compileOption("threads"):
   proc run*(r: RqlQuery, c: RethinkClient = nil, readMode = "single",

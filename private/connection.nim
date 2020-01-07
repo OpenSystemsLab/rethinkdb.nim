@@ -100,13 +100,13 @@ proc addOption*(r: RethinkClient, k: string, v: MutableDatum) =
   ## Set a global option
   r.options.add((k, v))
 
-proc use*(r: RethinkClient, s: string) =
+proc use*(r: RethinkClient, s: string): RethinkClient {.discardable.} =
   ## Change the default database on this connection.
-  var term: RqlQuery
-  new(term)
+  var term = new(RqlQuery)
   term.tt = DB
   term.args = @[newDatum(s)]
   r.addOption("db", term.toDatum)
+  result = r
 
 proc newRethinkClient*(address = "127.0.0.1", port = Port(28015), db: string = ""): RethinkClient =
   ## Init new client instance
@@ -123,6 +123,11 @@ proc newRethinkClient*(address = "127.0.0.1", port = Port(28015), db: string = "
 
   if db != "":
     result.use(db)
+
+template R*(address = "127.0.0.1", port = Port(28015), db: string = ""): RethinkClient =
+  ## Alias for `newRethinkClient`
+  newRethinkClient(address, port, db)
+
 when not compileOption("threads"):
   proc handshake(r: RethinkClient) {.async.} =
     when defined(debug):
@@ -275,7 +280,7 @@ when not compileOption("threads"):
 
     result = newResponse(buf, token)
 
-  proc connect*(r: RethinkClient, username = "admin", password: string = ""): Future[void] {.async.} =
+  proc connect*(r: RethinkClient, username = "admin", password: string = ""): Future[RethinkClient] {.discardable, async.} =
     ## Create a new connection to the database server
     if not r.isConnected:
       if r.username != username:
@@ -287,6 +292,7 @@ when not compileOption("threads"):
       await r.sock.connect(r.address, r.port)
       r.sockConnected = true
       await r.handshake()
+    result = r
 
   proc reconnect*(r: RethinkClient) {.async.} =
     ## Close and reopen a connection
@@ -348,7 +354,7 @@ else:
       echo "<<< ", buf
     newResponse(buf, token)
 
-  proc connect*(r: RethinkClient, username = "admin", password: string = "") =
+  proc connect*(r: RethinkClient, username = "admin", password: string = ""): RethinkClient {.discardable.} =
     ## Create a new connection to the database server
     if not r.isConnected:
       if r.username != username:
@@ -360,6 +366,7 @@ else:
       r.sock.connect(r.address, r.port)
       r.sockConnected = true
       r.handshake()
+    result = r
 
   proc reconnect*(r: RethinkClient) =
     ## Close and reopen a connection

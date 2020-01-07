@@ -6,24 +6,17 @@ template NEW_QUERY*(t: TermType): void =
   result = newQuery(t)
 
 template NEW_QUERY*(t: TermType, a1: typed): void =
-  result = newQuery(t)
-  result.addArg(a1)
+  result = newQuery(t).addArg(a1)
 
 template NEW_QUERY*(t: TermType, a1, a2: typed): void =
-  result = newQuery(t)
-  result.addArg(a1)
-  result.addArg(a2)
+  result = newQuery(t).addArg(a1).addArg(a2)
 
 template NEW_QUERY*(t: TermType, a1, a2, a3: typed): void =
-  result = newQuery(t)
-  result.addArg(a1)
-  result.addArg(a2)
-  result.addArg(a3)
+  result = newQuery(t).addArg(a1).addArg(a2).addArg(a3)
 
 proc newQuery*(tt: TermType): RqlQuery {.inline.} =
-  new result
+  result = new(RqlQuery)
   result.tt = tt
-
 
 proc newDatum*[T](t: T): RqlQuery =
   when t is RqlQuery:
@@ -33,14 +26,12 @@ proc newDatum*[T](t: T): RqlQuery =
   else:
     result = RqlQuery(tt: DATUM, value: t.toDatum)
 
-proc `@`*[T](t: T): RqlQUery =
-  newDatum(t)
-
-proc addArg*[T](r: RqlQuery, t: T) =
+proc addArg*[T](r: RqlQuery, t: T): RqlQuery {.discardable.} =
   when t is RqlQuery:
     r.args.add(t)
   else:
     r.args.add(newDatum(t))
+  result = r
 
 proc setOption*(r: RqlQuery, k: string, v: RqlQuery) {.noSideEffect, inline.} =
   r.optargs.add((k, v))

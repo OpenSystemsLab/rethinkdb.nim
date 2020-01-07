@@ -3,13 +3,12 @@ import ../rethinkdb
 
 setMaxPoolSize(64)
 
-proc insert(c: int) =
-  {.gcsafe.}:
-    var r = newRethinkClient()
-    r.connect()
-    r.use("test")
-    r.table("test").insert(&*{"c": c}).run(r, noreply=true, durability="soft")
-    r.close()
+var r: RethinkClient
 
-#for x in 0..1_000:
-#  spawn insert(x)
+proc insert(r: RethinkClient, c: int) =
+  r.table("test").insert(&*{"c": c}).run(r, noreply=true, durability="soft")
+
+r = R.connect().use("test").repl()
+for x in 0..1_000:
+  spawn insert(r, x)
+r.close()

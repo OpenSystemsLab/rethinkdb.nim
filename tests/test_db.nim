@@ -3,11 +3,9 @@ import ../rethinkdb
 
 randomize()
 
-let db = "test_db_" & $random(9999)
+let db = "test_db_" & $rand(9999)
 var ret: JsonNode
-let r = newRethinkClient()
-r.connect()
-r.repl()
+let r = R.connect().repl()
 
 
 suite "database manipulation tests":
