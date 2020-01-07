@@ -7,8 +7,8 @@ proc pluck*[T](r: T, n: varargs[string]): RqlQuery =
   for x in n:
     result.addArg(x)
 
-proc withoutR*[T](r: T, n: varargs[string]): RqlQuery =
-  NEW_QUERY(WITHOUT_R, r)
+proc without*[T](r: T, n: varargs[string]): RqlQuery =
+  NEW_QUERY(WITHOUT, r)
   for x in n:
     result.addArg(x)
 
@@ -21,6 +21,12 @@ proc merge*[T, U](r: T, n: varargs[proc(x: RqlQuery): U]): RqlQuery =
   NEW_QUERY(MERGE, r)
   for f in n:
     result.addArg(funcWrap(f))
+
+proc merge*[T](r: T, n: openArray[(string, RqlQuery)]): RqlQuery =
+  NEW_QUERY(MERGE, r)
+  for x in n:
+    result.addArg(&*{x[0]: x[1]})
+
 
 proc append*[T](r: RqlQuery, t: T): RqlQuery =
   NEW_QUERY(APPEND, r, t)

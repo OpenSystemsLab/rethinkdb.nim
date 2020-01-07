@@ -1,6 +1,6 @@
 
 ## This module provides all high-level API for query and manipulate data
-import json, future
+import json, sugar
 import ql2, datum, connection, utils, types
 
 
@@ -244,6 +244,24 @@ proc makeFunc*[T](f: T): RqlQuery =
   #TODO args count
   result.addArg(&[varId])
   result.addArg(f)
+
+proc funcWrap*[T](f: proc(ctx, oldValue, newValue: RqlQuery): T): RqlQuery =
+  NEW_QUERY(FUNC)
+
+  let
+    v1 = makeVar(1)
+    v2 = makeVar(2)
+    v3 = makeVar(3)
+
+  result.addArg(&*[1, 2, 3])
+  let res = f(v1, v2, v3)
+  when res is array:
+    var arr = newQuery(MAKE_ARRAY)
+    for x in res:
+      arr.addArg(x)
+    result.addArg(arr)
+  else:
+    result.addArg(res)
 
 proc `[]`*(r: RqlQuery, s: auto): RqlQuery =
   ## Operator for create row's fields chain

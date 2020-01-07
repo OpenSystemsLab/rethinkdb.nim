@@ -72,7 +72,7 @@ type
     GET_FIELD = 31
     HAS_FIELDS = 32
     PLUCK = 33
-    WITHOUT_R = 34
+    WITHOUT = 34
     MERGE = 35
     BETWEEN_DEPRECATED = 36
     REDUCE = 37
@@ -220,3 +220,14 @@ type
     FLOOR = 183
     CEIL = 184
     ROUND = 185
+    VALUES = 186
+    FOLD = 187
+    GRANT = 188
+    SET_WRITE_HOOK = 189
+    GET_WRITE_HOOK = 190
+    BIT_AND = 191
+    BIT_OR = 192
+    BIT_XOR = 193
+    BIT_NOT = 194
+    BIT_SAL = 195
+    BIT_SAR = 196

@@ -72,3 +72,17 @@ proc changes*[T](r: T, squash = false, includeStates = false): RqlQuery =
     result.setOption("squash", squash)
   if includeStates:
     result.setOption("include_states", includeStates)
+
+proc setWriteHook*(r: RqlQuery): RqlQuery =
+  ## Sets the write hook on a table or overwrites it if one already exists
+  NEW_QUERY(SET_WRITE_HOOK, r)
+  result.addArg(DEFAULT)
+
+proc setWriteHook*[U](r: RqlQuery, f: proc(ctx, oldValue, newValue: RqlQuery): U): RqlQuery =
+  ## Sets the write hook on a table or overwrites it if one already exists
+  NEW_QUERY(SET_WRITE_HOOK, r)
+  result.addArg(funcWrap(f))
+
+proc getWriteHook*(r: RqlQuery): RqlQuery =
+  ## Gets the write hook of a table, if any
+  NEW_QUERY(GET_WRITE_HOOK, r)

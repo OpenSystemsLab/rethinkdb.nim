@@ -118,3 +118,37 @@ proc random*(r: RethinkClient, x = 0, y = 1, isFloat = false): RqlQuery =
     result.addArg(newDatum(y))
   if isFloat:
     result.setOption("float", isFloat)
+
+proc bitAnd*(r: RqlQuery, numbers: varargs[int]): RqlQuery =
+  ## bitwise AND
+  NEW_QUERY(BIT_AND, r)
+  for n in numbers:
+    result.addArg(n)
+
+proc bitNot*(r: RqlQuery): RqlQuery =
+  ## bitwise NOT
+  NEW_QUERY(BIT_NOT, r)
+
+proc bitOr*(r: RqlQuery, numbers: varargs[int]): RqlQuery =
+  ## bitwise OR
+  NEW_QUERY(BIT_Or, r)
+  for n in numbers:
+    result.addArg(n)
+
+proc bitShl*(r: RqlQuery, numbers: varargs[int]): RqlQuery =
+  ## bitwise SHL
+  NEW_QUERY(BIT_SAL, r)
+  for n in numbers:
+    result.addArg(n)
+
+proc bitShr*(r: RqlQuery, numbers: varargs[int]): RqlQuery =
+  ## bitwise SHR
+  NEW_QUERY(BIT_SAR, r)
+  for n in numbers:
+    result.addArg(n)
+
+proc bitXor*(r: RqlQuery, numbers: varargs[int]): RqlQuery =
+  ## bitwise XOR
+  NEW_QUERY(BIT_XOR, r)
+  for n in numbers:
+    result.addArg(n)

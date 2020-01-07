@@ -1,12 +1,12 @@
 import unittest, json
 import ../rethinkdb
 
-let r = R.connect().repl()
-
 suite "math and logic tests":
+  let r = R.connect().repl()
+  var ret: JsonNode
+
   test "add":
     let output = 2
-    var ret: JsonNode
     ret = (r.expr(1) + 1).run()
     check(ret.num == output)
     ret = (1 + r.expr(1)).run()
@@ -35,4 +35,23 @@ suite "math and logic tests":
     expect(RqlRuntimeError):
       discard (r.expr("a") + 1).run()
 
-r.close()
+  test "bit wises":
+    ret = r.expr(5).bitAnd(3).run()
+    check(ret.getInt == 1)
+
+    ret = r.expr(7).bitNot().run()
+    check(ret.getInt == -8)
+
+    ret = r.expr(5).bitOr(3).run()
+    check(ret.getInt == 7)
+
+    ret = r.expr(5).bitShl(4).run()
+    check(ret.getInt == 80)
+
+    ret = r.expr(32).bitShr(3).run()
+    check(ret.getInt == 4)
+
+    ret = r.expr(6).bitXor(4).run()
+    check(ret.getInt == 2)
+
+  r.close()
