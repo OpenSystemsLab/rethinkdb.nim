@@ -15,7 +15,7 @@ template NEW_QUERY*(t: TermType, a1, a2, a3: typed): void =
   result = newQuery(t).addArg(a1).addArg(a2).addArg(a3)
 
 proc newQuery*(tt: TermType): RqlQuery {.inline.} =
-  result = new(RqlQuery)
+  new result
   result.tt = tt
 
 proc newDatum*[T](t: T): RqlQuery =

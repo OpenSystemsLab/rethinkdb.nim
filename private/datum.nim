@@ -34,7 +34,7 @@ proc `%`*(m: MutableDatum): JsonNode {.thread.} =
         "+00:00"
       else:
         m.time.format("zzz")
-    result = %*{"$reql_type$": "TIME", "epoch_time": m.time.toTime.toSeconds(), "timezone": tz}
+    result = %*{"$reql_type$": "TIME", "epoch_time": m.time.toTime.toUnix(), "timezone": tz}
   of R_TERM:
     result = newJArray()
     result.add(newJInt(m.term.tt.ord))

@@ -20,6 +20,10 @@ proc tableDrop*(r: RqlQuery, t: string): RqlQuery =
   ## Drop a table
   NEW_QUERY(TABLE_DROP, r, t)
 
+proc tableList*(r: RethinkClient): RqlQuery =
+  ## List all table names in a database.
+  NEW_QUERY(TABLE_LIST)
+
 proc indexCreate*(r: RqlQuery, n: string, f: RqlQuery = nil, multi = false, geo = false): RqlQuery =
   ## Create a new secondary index on a table.
   NEW_QUERY(INDEX_CREATE, r, n)

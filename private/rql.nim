@@ -37,49 +37,49 @@ when not compileOption("threads"):
     if not c.isConnected:
       raise newException(RqlClientError, "Connection is closed.")
 
-    var options = newTable[string, MutableDatum]()
+    var options: seq[MutableDatumPairs]
 
     if readMode != "single":
-      options.add(("read_mode",  &readMode))
+      options.add(("read_mode",  readMode.toDatum))
 
     if timeFormat != "native":
-      options.add(("time_format",  &timeFormat))
+      options.add(("time_format",  timeFormat.toDatum))
 
     if profile:
-      options.add(("profile",  &profile))
+      options.add(("profile",  profile.toDatum))
 
     if durability != "hard":
-      options.add(("durability",  &durability))
+      options.add(("durability",  durability.toDatum))
 
     if groupFormat != "native":
-      options.add(("group_format",  &groupFormat))
+      options.add(("group_format",  groupFormat.toDatum))
 
     if noreply:
-      options.add(("noreply",  &noreply))
+      options.add(("noreply",  noreply.toDatum))
 
     if db != "":
-      options.add(("db",  &db))
+      options.add(("db",  db.toDatum))
 
     if arrayLimit != 100_000:
-      options.add(("array_limit",  &arrayLimit))
+      options.add(("array_limit",  arrayLimit.toDatum))
 
     if binaryFormat != "native":
-      options.add(("binary_format",  &binaryFormat))
+      options.add(("binary_format",  binaryFormat.toDatum))
 
     if minBatchRows != 8:
-      options.add(("min_batch_rows",  &minBatchRows))
+      options.add(("min_batch_rows",  minBatchRows.toDatum))
 
     if maxBatchRows != 0:
-      options.add(("max_batch_rows",  &maxBatchRows))
+      options.add(("max_batch_rows",  maxBatchRows.toDatum))
 
     if maxBatchBytes != 0:
-      options.add(("max_batch_bytes",  &maxBatchBytes))
+      options.add(("max_batch_bytes",  maxBatchBytes.toDatum))
 
     if maxBatchSeconds != 0.5:
-      options.add(("max_batch_seconds",  &maxBatchSeconds))
+      options.add(("max_batch_seconds",  maxBatchSeconds.toDatum))
 
     if firstBatchScaleDownFactor != 4:
-      options.add(("first_batch_scaledown_factor",  &firstBatchScaleDownFactor))
+      options.add(("first_batch_scaledown_factor",  firstBatchScaleDownFactor.toDatum))
 
     await c.startQuery(r, options)
 
@@ -107,8 +107,6 @@ when not compileOption("threads"):
         raise newException(RqlCompileError, $response.data[0])
       of RUNTIME_ERROR:
         raise newException(RqlRuntimeError, $response.data[0])
-      else:
-        raise newException(RqlDriverError, "Unknown response type $#" % [$response.kind])
 else:
    proc run*(r: RqlQuery, c: RethinkClient = nil, readMode = "single",
             timeFormat = "native", profile = false, durability = "hard", groupFormat = "native",
@@ -200,38 +198,6 @@ proc makeVar(i: int): RqlQuery =
   NEW_QUERY(VAR)
   result.addArg(newDatum(i))
 
-proc funcWrap[T](f: proc(x: RqlQuery): T): RqlQuery =
-  ## Wraper for anonymous function
-  NEW_QUERY(FUNC)
-
-  let v1 = makeVar(1)
-  result.addArg([1])
-  let res = f(v1)
-  when res is array:
-    var arr = newQuery(MAKE_ARRAY)
-    for x in res:
-      arr.addArg(x)
-    result.addArg(arr)
-  else:
-    result.addArg(res)
-
-proc funcWrap[T](f: proc(x: RqlQuery, y: RqlQuery): T): RqlQuery =
-  NEW_QUERY(FUNC)
-
-  let v1 = makeVar(1)
-  let v2 = makeVar(2)
-
-  result.addArg(&*[1, 2])
-  let res = f(v1, v2)
-  when res is array:
-    var arr = newQuery(MAKE_ARRAY)
-    for x in res:
-      arr.addArg(x)
-    result.addArg(arr)
-  else:
-    result.addArg(res)
-
-
 proc makeFunc*[T](f: T): RqlQuery =
   ## Call an anonymous function using return values from other ReQL commands or queries as arguments.
   ##
@@ -245,16 +211,29 @@ proc makeFunc*[T](f: T): RqlQuery =
   result.addArg(&[varId])
   result.addArg(f)
 
-proc funcWrap*[T](f: proc(ctx, oldValue, newValue: RqlQuery): T): RqlQuery =
+type
+  f1 = proc(a1: RqlQuery): RqlQuery
+  f2 = proc(a1, a2: RqlQuery): RqlQuery
+  f3 = proc(a1, a2, a3: RqlQuery): RqlQuery
+  f4 = proc(a1, a2, a3, a4: RqlQuery): RqlQuery
+
+
+proc funcWrap*[T: f1|f2|f3|f4](f: T): RqlQuery =
   NEW_QUERY(FUNC)
 
-  let
-    v1 = makeVar(1)
-    v2 = makeVar(2)
-    v3 = makeVar(3)
+  when T is f1:
+    result.addArg(&*[1])
+    let res = f(makeVar(1))
+  elif T is f2:
+    result.addArg(&*[1, 2])
+    let res = f(makeVar(1), makeVar(2))
+  elif T is f3:
+    result.addArg(&*[1, 2, 3])
+    let res = f(makeVar(1), makeVar(2), makeVar(3))
+  elif T is f4:
+    result.addArg(&*[1, 2, 3, 4])
+    let res = f(makeVar(1), makeVar(2), makeVar(3), makeVar(4))
 
-  result.addArg(&*[1, 2, 3])
-  let res = f(v1, v2, v3)
   when res is array:
     var arr = newQuery(MAKE_ARRAY)
     for x in res:
@@ -271,7 +250,6 @@ proc `[]`*(r: RqlQuery, s: auto): RqlQuery =
   ## .. code-block:: nim
   ##  r.row["age"]
   NEW_QUERY(BRACKET, r, s)
-
 
 include queries/db
 include queries/table

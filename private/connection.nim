@@ -13,15 +13,13 @@ const
   HANDSHAKE_FINAL_MESSAGE = "{\"authentication\": \"$#\"}\x0"
 
 when not compileOption("threads"):
-  const
-    BUFFER_SIZE = 512
   type
     RethinkClient* = ref object of RootObj
       address: string
       port: Port
       username: string
       password: string
-      options: TableRef[string, MutableDatum]
+      options: seq[MutableDatumPairs]
       sock: AsyncSocket
       sockConnected: bool
       queryToken: uint64
@@ -242,19 +240,18 @@ when not compileOption("threads"):
     let data = pack(">q<i$#s" % $termLen, token, termLen, term)
     await r.sock.send(data)
 
-  proc startQuery*(r: RethinkClient, t: RqlQuery, options: TableRef[string, MutableDatum] = nil) {.async.} =
+  proc startQuery*(r: RethinkClient, t: RqlQuery, options: seq[MutableDatumPairs]) {.async.} =
     ## Send START query
     var q = new(Query)
     q.kind = START
     q.term = t
-    q.options = newTable[string, MutableDatum]()
 
-    if not r.options.isNil and r.options.len > 0:
-      for k, v in r.options.pairs():
-        q.options.add(k, v)
-    if not options.isNil:
-      for k, v in options.pairs():
-        q.options.add(k, v)
+    if r.options.len > 0:
+      for p in r.options:
+        q.options.add(p)
+    if options.len > 0:
+      for p in options:
+        q.options.add(p)
 
     await r.runQuery(q)
 
@@ -280,12 +277,12 @@ when not compileOption("threads"):
 
     result = newResponse(buf, token)
 
-  proc connect*(r: RethinkClient, username = "admin", password: string = ""): Future[RethinkClient] {.discardable, async.} =
+  proc connect*(r: RethinkClient, username = "admin", password = ""): Future[RethinkClient] {.async.} =
     ## Create a new connection to the database server
     if not r.isConnected:
       if r.username != username:
         r.username = username
-        if not  password.isNilOrEmpty and r.password != password:
+        if password.len > 0 and r.password != password:
           r.password = password
       when defined(debug):
         L.log(lvlDebug, "Connecting to server at $#:$#..." % [r.address, $r.port.int])
@@ -297,7 +294,7 @@ when not compileOption("threads"):
   proc reconnect*(r: RethinkClient) {.async.} =
     ## Close and reopen a connection
     r.close()
-    await r.connect()
+    discard await r.connect()
 
 else:
   proc runQuery(r: RethinkClient, q: Query, token: uint64 = 0): int {.thread.} =
@@ -354,12 +351,12 @@ else:
       echo "<<< ", buf
     newResponse(buf, token)
 
-  proc connect*(r: RethinkClient, username = "admin", password: string = ""): RethinkClient {.discardable.} =
+  proc connect*(r: RethinkClient, username = "admin", password = ""): RethinkClient {.discardable.} =
     ## Create a new connection to the database server
     if not r.isConnected:
       if r.username != username:
         r.username = username
-      if not  password.isNilOrEmpty and r.password != password:
+      if password.len > 0 and r.password != password:
         r.password = password
       when defined(debug):
         L.log(lvlDebug, "Connecting to server at $#:$#..." % [r.address, $r.port])
