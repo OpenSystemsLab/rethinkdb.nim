@@ -37,7 +37,6 @@ proc indexCreate*(r: RqlQuery, n: string, f: RqlQuery = nil, multi = false, geo 
   if geo:
    result.setOption("geo", geo)
 
-
 proc indexDrop*(r: RqlQuery, n: string): RqlQuery =
   ## Delete a previously created secondary index of this table
   NEW_QUERY(INDEX_DROP, r, n)
@@ -69,20 +68,12 @@ proc indexWait*(r: RqlQuery, names: varargs[string]): RqlQuery =
   for name in names:
     result.addArg(newDatum(name))
 
-proc changes*[T](r: T, squash = false, includeStates = false): RqlQuery =
-  ## Return a changefeed, an infinite stream of objects representing changes to a query
-  NEW_QUERY(CHANGES, r)
-  if squash:
-    result.setOption("squash", squash)
-  if includeStates:
-    result.setOption("include_states", includeStates)
-
 proc setWriteHook*(r: RqlQuery): RqlQuery =
   ## Sets the write hook on a table or overwrites it if one already exists
   NEW_QUERY(SET_WRITE_HOOK, r)
   result.addArg(DEFAULT)
 
-proc setWriteHook*[U](r: RqlQuery, f: proc(ctx, oldValue, newValue: RqlQuery): U): RqlQuery =
+proc setWriteHook*(r: RqlQuery, f: proc(ctx, oldValue, newValue: RqlQuery): RqlQuery): RqlQuery =
   ## Sets the write hook on a table or overwrites it if one already exists
   NEW_QUERY(SET_WRITE_HOOK, r)
   result.addArg(funcWrap(f))

@@ -26,7 +26,7 @@ when not compileOption("threads"):
             timeFormat = "native", profile = false, durability = "hard", groupFormat = "native",
             noreply = false, db = "", arrayLimit = 100_000, binaryFormat = "native",
             minBatchRows = 8, maxBatchRows = 0, maxBatchBytes = 0, maxBatchSeconds = 0.5,
-            firstBatchScaleDownFactor = 4): Future[JsonNode] {.async, discardable.} =
+            firstBatchScaleDownFactor = 4, callback: proc(data: JsonNode) = nil): Future[JsonNode] {.async, discardable.} =
     ## Run a query on a connection, returning a `JsonNode` contains single JSON result or an JsonArray, depending on the query.
     var c = c
     if c.isNil:
@@ -93,14 +93,20 @@ when not compileOption("threads"):
       of SUCCESS_SEQUENCE:
         result = response.data
       of SUCCESS_PARTIAL:
-        result = newJArray()
-        result.add(response.data)
+        if callback != nil:
+          callback(response.data)
+        else:
+          result = newJArray()
+          result.add(response.data)
         while response.kind == SUCCESS_PARTIAL:
           await c.continueQuery(response.token)
           response = await c.readResponse()
-          result.add(response.data)
-          if result.elems.len == 1:
-            return result[0]
+          if callback != nil:
+            callback(response.data)
+          else:
+            result.add(response.data)
+            if result.elems.len == 1:
+              return result[0]
       of CLIENT_ERROR:
         raise newException(RqlClientError, $response.data[0])
       of COMPILE_ERROR:
@@ -112,7 +118,7 @@ else:
             timeFormat = "native", profile = false, durability = "hard", groupFormat = "native",
             noreply = false, db = "", arrayLimit = 100_000, binaryFormat = "native",
             minBatchRows = 8, maxBatchRows = 0, maxBatchBytes = 0, maxBatchSeconds = 0.5,
-            firstBatchScAleDownFactor = 4): JsonNode {.thread, discardable.} =
+            firstBatchScAleDownFactor = 4, callback: proc(data: JsonNode) = nil): JsonNode {.thread, discardable.} =
     ## Run a query on a connection, returning a `JsonNode` contains single JSON result or an JsonArray, depending on the query.
     var c = c
     if c.isNil:
@@ -179,14 +185,20 @@ else:
       of SUCCESS_SEQUENCE:
         result = response.data
       of SUCCESS_PARTIAL:
-        result = newJArray()
-        result.add(response.data)
+        if callback != nil:
+          callback(response.data)
+        else:
+          result = newJArray()
+          result.add(response.data)
         while response.kind == SUCCESS_PARTIAL:
           c.continueQuery(response.token)
           response = c.readResponse()
-          result.add(response.data)
-          if result.elems.len == 1:
-            return result[0]
+          if callback != nil:
+            callback(response.data)
+          else:
+            result.add(response.data)
+            if result.elems.len == 1:
+              return result[0]
       of CLIENT_ERROR:
         raise newException(RqlClientError, $response.data[0])
       of COMPILE_ERROR:
@@ -250,6 +262,15 @@ proc `[]`*(r: RqlQuery, s: auto): RqlQuery =
   ## .. code-block:: nim
   ##  r.row["age"]
   NEW_QUERY(BRACKET, r, s)
+
+
+proc changes*[T](r: T, squash = false, includeStates = false): RqlQuery =
+  ## Return a changefeed, an infinite stream of objects representing changes to a query
+  NEW_QUERY(CHANGES, r)
+  if squash:
+    result.setOption("squash", squash)
+  if includeStates:
+    result.setOption("include_states", includeStates)
 
 include queries/db
 include queries/table

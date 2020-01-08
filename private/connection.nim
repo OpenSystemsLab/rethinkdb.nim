@@ -57,7 +57,7 @@ when defined(debug):
   var L {.threadvar.}: ConsoleLogger
   L = newConsoleLogger()
 
-proc `$`*(q: Query): string {.thread.} =
+proc toString*(q: Query): string {.thread.} =
   var j = newJArray()
   j.add(newJInt(q.kind.ord))
 
@@ -231,11 +231,11 @@ proc isConnected*(r: RethinkClient): bool {.noSideEffect, inline.} =
 when not compileOption("threads"):
   proc runQuery(r: RethinkClient, q: Query, token: uint64 = 0) {.async.} =
     when defined(debug):
-      L.log(lvlDebug, "Sending query: $#" % [$q])
+      L.log(lvlDebug, "Sending query: $#" % [q.toString])
     var token = token
     if token == 0:
       token = r.nextToken
-    let term = $q
+    let term = q.toString
     let termLen = term.len.int32
     let data = pack(">q<i$#s" % $termLen, token, termLen, term)
     await r.sock.send(data)
@@ -299,11 +299,11 @@ when not compileOption("threads"):
 else:
   proc runQuery(r: RethinkClient, q: Query, token: uint64 = 0): int {.thread.} =
     when defined(debug):
-      L.log(lvlDebug, "Sending query: $#" % [$q])
+      L.log(lvlDebug, "Sending query: $#" % [q.toString])
     var token = token
     if token == 0:
       token = r.nextToken
-    let term = $q
+    let term = q.toString
     let termLen = term.len.int32
     var data = pack(">q<i$#s" % $termLen, token, termLen, term)
     r.sock.send(data)
