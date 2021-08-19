@@ -1,4 +1,4 @@
-import private/[datum, types, connection, rql, utils]
+import rethinkdbpkg/[datum, types, connection, rql, utils]
 
 export datum
 export types
